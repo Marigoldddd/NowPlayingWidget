@@ -1,19 +1,25 @@
-# Netease Now Playing Widget
+# Now Playing Widget
 
-一个面向 macOS 桌面的网易云音乐正在播放小组件。
+一个面向 macOS 桌面的音乐正在播放小组件，支持网易云音乐和 Apple Music。
 
 它由一个菜单栏助手和一个 WidgetKit 小组件组成：菜单栏助手读取系统正在播放信息，写入本地 JSON 和封面文件；小组件读取这些数据，在桌面显示歌曲、歌手、专辑、播放状态和封面。小组件背景会根据封面主色自动生成深色渐变。
 
 
 ## 预览
 
-中号小组件显示完整播放器卡片，小号小组件显示精简信息。
+中号小组件显示完整播放器卡片，小号小组件显示精简信息。下面两张预览使用相同显示宽度，便于对比不同播放器的数据来源。
 
-![Netease Now Playing Widget 预览](docs/preview.png)
+<p>
+  <img src="docs/image1_netease.png" alt="网易云音乐预览" width="420">
+</p>
+
+<p>
+  <img src="docs/image2_applemusic.png" alt="Apple Music 预览" width="420">
+</p>
 
 ## 特性
 
-- 显示网易云音乐当前歌曲、歌手、专辑、播放状态和封面。
+- 显示网易云音乐或 Apple Music 当前歌曲、歌手、专辑、播放状态和封面。
 - 根据封面平均色生成小组件背景。
 - 支持 macOS 桌面小号和中号小组件。
 - 菜单栏助手提供手动刷新、打开数据目录和退出。
@@ -25,7 +31,7 @@
 - macOS 14 Sonoma 或更新版本
 - Xcode
 - Homebrew
-- 网易云音乐 macOS 客户端
+- 网易云音乐 macOS 客户端或 Apple Music
 - `nowplaying-cli`
 
 安装依赖：
@@ -54,7 +60,7 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 4. 选择 `NeteaseMusicWidget` target，也设置同一个 Team。
 5. 建议把两个 Bundle Identifier 改成你自己的反向域名。
 6. 构建并运行 `NeteaseNowPlaying`。
-7. 打开网易云音乐并播放歌曲。
+7. 打开网易云音乐或 Apple Music 并播放歌曲。
 8. 在桌面右键进入“编辑小组件”，添加小组件。
 
 启动成功后，菜单栏会出现一个小图标。菜单包含：
@@ -80,10 +86,11 @@ xcodebuild \
 
 ## 配置
 
-项目默认只处理网易云音乐：
+项目默认处理以下播放器：
 
 ```text
 com.netease.163music
+com.apple.Music
 ```
 
 如果修改了 Widget Extension 的 Bundle Identifier，需要同步修改 [Shared/NowPlayingShared.swift](Shared/NowPlayingShared.swift)：
@@ -123,9 +130,9 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 如果小组件一直显示等待状态，先确认：
 
 1. 菜单栏助手正在运行。
-2. 网易云音乐正在播放。
+2. 网易云音乐或 Apple Music 正在播放。
 3. `nowplaying-cli` 可以正常读取正在播放信息。
-4. 桌面上添加的是当前构建出来的“网易云音乐”小组件。
+4. 桌面上添加的是当前构建出来的“正在播放”小组件。
 
 检查 `nowplaying-cli`：
 
@@ -167,7 +174,7 @@ killall NotificationCenter
 - `nowplaying-cli` 依赖 macOS 私有 MediaRemote 信息，系统更新后可能失效或行为变化。
 - 网易云音乐提供给系统的封面通常分辨率较低，常见约为 `100x100`，因此小组件封面可能不如客户端内高清。
 - WidgetKit 有刷新预算和缓存策略，切歌后不会像普通 App UI 一样毫秒级实时刷新。
-- 当前只针对网易云音乐 macOS 客户端，没有做多播放器选择。
+- 当前支持网易云音乐和 Apple Music，没有做播放器优先级选择；系统正在播放信息来自哪个播放器，就显示哪个播放器。
 - 项目没有使用 App Group，因此修改 Widget Bundle Identifier 后必须同步修改代码里的容器路径常量。
 
 ## 许可证

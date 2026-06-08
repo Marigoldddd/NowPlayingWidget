@@ -127,9 +127,27 @@ struct NeteaseMusicWidgetEntryView: View {
     private var statusView: some View {
         HStack(spacing: 6) {
             statusDot
-            Text(entry.snapshot.isPlaying ? "PLAYING" : "PAUSED")
+            Text(statusText)
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.78))
+                .lineLimit(1)
+        }
+    }
+
+    private var statusText: String {
+        let state = entry.snapshot.isPlaying ? "PLAYING" : "PAUSED"
+        guard !sourceName.isEmpty else { return state }
+        return "\(state) · \(sourceName)"
+    }
+
+    private var sourceName: String {
+        switch entry.snapshot.sourceBundleID {
+        case "com.apple.Music":
+            return "Apple Music"
+        case "com.netease.163music":
+            return "网易云音乐"
+        default:
+            return ""
         }
     }
 
@@ -293,8 +311,8 @@ struct NeteaseMusicWidget: Widget {
         ) { entry in
             NeteaseMusicWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("网易云音乐")
-        .description("显示当前网易云音乐的歌曲、歌手、封面和播放状态。")
+        .configurationDisplayName("正在播放")
+        .description("显示当前网易云音乐或 Apple Music 的歌曲、歌手、封面和播放状态。")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
     }

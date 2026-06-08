@@ -92,7 +92,7 @@ struct NowPlayingSnapshot: Codable, Equatable {
     var backgroundBlue: Double
 
     static let empty = NowPlayingSnapshot(
-        title: "等待网易云音乐",
+        title: "等待音乐播放",
         artist: "播放歌曲后会自动更新",
         album: "",
         isPlaying: false,

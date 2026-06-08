@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = MenuBarIcon.image()
         statusItem.button?.imagePosition = .imageOnly
-        statusItem.button?.toolTip = "网易云小组件"
+        statusItem.button?.toolTip = "正在播放小组件"
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r"))
@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("网易云音乐小组件")
+            Text("正在播放小组件")
                 .font(.title2.bold())
             Text("保持菜单栏助手运行，它会读取 macOS 正在播放信息，并刷新桌面 WidgetKit 小组件。")
                 .foregroundStyle(.secondary)

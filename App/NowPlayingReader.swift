@@ -8,7 +8,10 @@ struct NowPlayingReadResult {
 
 final class NowPlayingReader {
     private let executable = "/opt/homebrew/bin/nowplaying-cli"
-    private let neteaseBundleID = "com.netease.163music"
+    private let supportedBundleIDs: Set<String> = [
+        "com.netease.163music",
+        "com.apple.Music",
+    ]
 
     func read() async throws -> NowPlayingReadResult {
         let raw = try runNowPlayingCLI()
@@ -17,7 +20,7 @@ final class NowPlayingReader {
         let info = object ?? [:]
 
         let sourceBundleID = string(info, "kMRMediaRemoteNowPlayingInfoClientBundleIdentifier")
-        guard sourceBundleID == neteaseBundleID else {
+        guard supportedBundleIDs.contains(sourceBundleID) else {
             return NowPlayingReadResult(snapshot: .empty, artworkData: nil)
         }
 
@@ -51,24 +54,14 @@ final class NowPlayingReader {
         process.arguments = ["get-raw"]
 
         let output = Pipe()
-        let error = Pipe()
         process.standardOutput = output
-        process.standardError = error
+        process.standardError = output
 
         try process.run()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
 
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        if !data.isEmpty {
-            return data
-        }
-
-        let errorData = error.fileHandleForReading.readDataToEndOfFile()
-        if !errorData.isEmpty {
-            return errorData
-        }
-
-        return Data()
+        return data
     }
 
     private func extractJSONObject(from data: Data) throws -> Data {
