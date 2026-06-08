@@ -6,3 +6,5 @@ xcuserdata/
 *.moved-aside
 *.xccheckout
 *.xcscmblueprint
+BuildDerivedData/
+InstallDerivedData/
