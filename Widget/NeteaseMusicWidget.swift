@@ -1,4 +1,5 @@
 import AppKit
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -100,6 +101,11 @@ struct NeteaseMusicWidgetEntryView: View {
                         .foregroundStyle(.white.opacity(0.64))
                         .lineLimit(1)
                 }
+
+                if !entry.snapshot.isIdle {
+                    controlsView
+                        .padding(.top, 6)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -163,6 +169,46 @@ struct NeteaseMusicWidgetEntryView: View {
         Circle()
             .fill(entry.snapshot.isPlaying ? Color(red: 0.36, green: 0.92, blue: 0.42) : .white.opacity(0.42))
             .frame(width: 8, height: 8)
+    }
+
+    private var controlsView: some View {
+        HStack(spacing: 24) {
+            Button(intent: PreviousTrackIntent()) {
+                Image(systemName: "backward.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+
+            if entry.snapshot.isPlaying {
+                Button(intent: PauseTrackIntent()) {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+            } else {
+                Button(intent: PlayTrackIntent()) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+            }
+
+            Button(intent: NextTrackIntent()) {
+                Image(systemName: "forward.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+        }
+        .foregroundStyle(.white)
+        .frame(width: 134, alignment: .center)
     }
 }
 
