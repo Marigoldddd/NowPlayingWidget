@@ -6,11 +6,12 @@ struct MusicEntry: TimelineEntry {
     let date: Date
     let snapshot: NowPlayingSnapshot
     let artworkURL: URL?
+    let backgroundColor: WidgetBackgroundColor
 }
 
 struct MusicProvider: TimelineProvider {
     func placeholder(in context: Context) -> MusicEntry {
-        MusicEntry(date: Date(), snapshot: .empty, artworkURL: nil)
+        MusicEntry(date: Date(), snapshot: .empty, artworkURL: nil, backgroundColor: .defaultIdle)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MusicEntry) -> Void) {
@@ -40,15 +41,22 @@ struct MusicProvider: TimelineProvider {
                 continue
             }
 
-            let artworkURL = snapshot.hasArtwork
+            let artworkURL = snapshot.isIdle
+                ? NowPlayingShared.readableIdleArtworkURLs().first(where: {
+                    FileManager.default.fileExists(atPath: $0.path)
+                })
+                : snapshot.hasArtwork
                 ? NowPlayingShared.readableArtworkURLs().first(where: {
                     FileManager.default.fileExists(atPath: $0.path)
                 })
                 : nil
-            return MusicEntry(date: Date(), snapshot: snapshot, artworkURL: artworkURL)
+            let backgroundColor = snapshot.isIdle
+                ? WidgetBackgroundColor.fromArtwork(at: artworkURL) ?? .from(snapshot: snapshot)
+                : .from(snapshot: snapshot)
+            return MusicEntry(date: Date(), snapshot: snapshot, artworkURL: artworkURL, backgroundColor: backgroundColor)
         }
 
-        return MusicEntry(date: Date(), snapshot: .empty, artworkURL: nil)
+        return MusicEntry(date: Date(), snapshot: .empty, artworkURL: nil, backgroundColor: .defaultIdle)
     }
 }
 
@@ -65,8 +73,7 @@ struct NeteaseMusicWidgetEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(CardBackground(snapshot: entry.snapshot))
-        .modifier(WidgetBackground(snapshot: entry.snapshot))
+        .modifier(WidgetBackground(backgroundColor: entry.backgroundColor))
     }
 
     private var mediumLayout: some View {
@@ -135,6 +142,7 @@ struct NeteaseMusicWidgetEntryView: View {
     }
 
     private var statusText: String {
+        if entry.snapshot.isIdle { return "IDLE" }
         let state = entry.snapshot.isPlaying ? "PLAYING" : "PAUSED"
         guard !sourceName.isEmpty else { return state }
         return "\(state) · \(sourceName)"
@@ -182,14 +190,12 @@ struct AnimatedArtworkView: View {
 struct ArtworkView: View {
     let url: URL?
     let size: CGFloat
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
         ZStack {
             if let image = image {
-                Image(nsImage: image)
-                    .resizable()
-                    .interpolation(.medium)
-                    .scaledToFill()
+                artworkImage(image)
             } else {
                 LinearGradient(
                     colors: [Color.white.opacity(0.20), Color.white.opacity(0.06)],
@@ -214,6 +220,22 @@ struct ArtworkView: View {
     private var image: NSImage? {
         guard let url else { return nil }
         return NSImage(contentsOf: url)
+    }
+
+    @ViewBuilder
+    private func artworkImage(_ image: NSImage) -> some View {
+        if #available(macOSApplicationExtension 15.0, *) {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.medium)
+                .widgetAccentedRenderingMode(renderingMode == .accented ? .fullColor : nil)
+                .scaledToFill()
+        } else {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.medium)
+                .scaledToFill()
+        }
     }
 }
 
@@ -250,7 +272,7 @@ private extension AnyTransition {
 }
 
 struct CardBackground: View {
-    let snapshot: NowPlayingSnapshot
+    let backgroundColor: WidgetBackgroundColor
 
     var body: some View {
         ZStack {
@@ -281,23 +303,97 @@ struct CardBackground: View {
 
     private func color(scale: Double) -> Color {
         Color(
-            red: min(max(snapshot.backgroundRed * scale, 0), 1),
-            green: min(max(snapshot.backgroundGreen * scale, 0), 1),
-            blue: min(max(snapshot.backgroundBlue * scale, 0), 1)
+            red: min(max(backgroundColor.red * scale, 0), 1),
+            green: min(max(backgroundColor.green * scale, 0), 1),
+            blue: min(max(backgroundColor.blue * scale, 0), 1)
+        )
+    }
+}
+
+struct WidgetBackgroundColor {
+    let red: Double
+    let green: Double
+    let blue: Double
+
+    static let defaultIdle = WidgetBackgroundColor(red: 0.64, green: 0.10, blue: 0.13)
+
+    static func from(snapshot: NowPlayingSnapshot) -> WidgetBackgroundColor {
+        WidgetBackgroundColor(
+            red: snapshot.backgroundRed,
+            green: snapshot.backgroundGreen,
+            blue: snapshot.backgroundBlue
+        )
+    }
+
+    static func fromArtwork(at url: URL?) -> WidgetBackgroundColor? {
+        guard let url,
+              let image = NSImage(contentsOf: url),
+              let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else {
+            return nil
+        }
+
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
+        let step = max(1, min(width, height) / 32)
+        var red = 0.0
+        var green = 0.0
+        var blue = 0.0
+        var count = 0.0
+
+        for y in stride(from: 0, to: height, by: step) {
+            for x in stride(from: 0, to: width, by: step) {
+                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else {
+                    continue
+                }
+                red += color.redComponent
+                green += color.greenComponent
+                blue += color.blueComponent
+                count += 1
+            }
+        }
+
+        guard count > 0 else { return nil }
+
+        let average = NSColor(
+            srgbRed: red / count,
+            green: green / count,
+            blue: blue / count,
+            alpha: 1
+        )
+
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        average.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: nil)
+
+        let displaySaturation = min(max(saturation * 1.55, 0.30), 0.88)
+        let displayBrightness = min(max(brightness * 0.50, 0.18), 0.42)
+        let displayColor = NSColor(
+            hue: hue,
+            saturation: displaySaturation,
+            brightness: displayBrightness,
+            alpha: 1
+        ).usingColorSpace(.sRGB) ?? average
+
+        return WidgetBackgroundColor(
+            red: Double(displayColor.redComponent),
+            green: Double(displayColor.greenComponent),
+            blue: Double(displayColor.blueComponent)
         )
     }
 }
 
 struct WidgetBackground: ViewModifier {
-    let snapshot: NowPlayingSnapshot
+    let backgroundColor: WidgetBackgroundColor
 
     func body(content: Content) -> some View {
         if #available(macOSApplicationExtension 14.0, *) {
             content.containerBackground(for: .widget) {
-                CardBackground(snapshot: snapshot)
+                CardBackground(backgroundColor: backgroundColor)
             }
         } else {
-            content.background(CardBackground(snapshot: snapshot))
+            content.background(CardBackground(backgroundColor: backgroundColor))
         }
     }
 }
@@ -323,5 +419,11 @@ private extension JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
+    }
+}
+
+private extension NowPlayingSnapshot {
+    var isIdle: Bool {
+        sourceBundleID.isEmpty && title == NowPlayingSnapshot.empty.title && artist == NowPlayingSnapshot.empty.artist
     }
 }

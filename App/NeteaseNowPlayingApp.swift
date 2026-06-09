@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r"))
+        menu.addItem(NSMenuItem(title: "设置...", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "打开数据目录", action: #selector(openDataFolder), keyEquivalent: "o"))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
@@ -51,12 +52,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.activateFileViewerSelecting([folder])
     }
 
+    @objc private func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    }
+
     @objc private func quit() {
         NSApp.terminate(nil)
     }
 }
 
 struct SettingsView: View {
+    @State private var hasIdleArtwork = Self.idleArtworkExists
+    @State private var message: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("正在播放小组件")
@@ -64,12 +73,97 @@ struct SettingsView: View {
             Text("保持菜单栏助手运行，它会读取 macOS 正在播放信息，并刷新桌面 WidgetKit 小组件。")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            VStack(alignment: .leading, spacing: 10) {
+                Text("静止状态")
+                    .font(.headline)
+                Text("未播放音乐时，左侧会显示自定义图片；未设置或删除后使用默认音乐图标。")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button(hasIdleArtwork ? "更换图片" : "选择图片") {
+                        chooseIdleArtwork()
+                    }
+                    Button("删除自定义图片") {
+                        removeIdleArtwork()
+                    }
+                    .disabled(!hasIdleArtwork)
+                    if hasIdleArtwork {
+                        Text("已设置")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let message {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Text("数据目录: ~/Library/Containers/\(NowPlayingShared.widgetBundleID)/Data/Library/Application Support/\(NowPlayingShared.supportFolderName)")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
         .padding(24)
         .frame(width: 480, alignment: .leading)
+    }
+
+    private static var idleArtworkExists: Bool {
+        NowPlayingShared.readableIdleArtworkURLs().contains {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+    }
+
+    private func chooseIdleArtwork() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+
+        guard panel.runModal() == .OK,
+              let url = panel.url,
+              let image = NSImage(contentsOf: url),
+              let data = image.pngData else {
+            return
+        }
+
+        do {
+            try writeIdleArtwork(data)
+            hasIdleArtwork = true
+            message = "静止图片已更新。"
+            WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            message = "保存图片失败: \(error.localizedDescription)"
+        }
+    }
+
+    private func removeIdleArtwork() {
+        for container in NowPlayingShared.writableContainerURLs() {
+            let url = container.appendingPathComponent(NowPlayingShared.idleArtworkFileName)
+            try? FileManager.default.removeItem(at: url)
+        }
+        hasIdleArtwork = false
+        message = "已恢复默认音乐图标。"
+        WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func writeIdleArtwork(_ data: Data) throws {
+        for container in NowPlayingShared.writableContainerURLs() {
+            try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+            let url = container.appendingPathComponent(NowPlayingShared.idleArtworkFileName)
+            try data.write(to: url, options: .atomic)
+        }
+    }
+}
+
+private extension NSImage {
+    var pngData: Data? {
+        guard let tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffRepresentation) else {
+            return nil
+        }
+        return bitmap.representation(using: .png, properties: [:])
     }
 }
 

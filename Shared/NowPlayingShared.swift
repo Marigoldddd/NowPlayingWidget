@@ -6,6 +6,7 @@ enum NowPlayingShared {
     static let supportFolderName = "NeteaseNowPlaying"
     static let dataFileName = "nowplaying.json"
     static let artworkFileName = "cover.jpg"
+    static let idleArtworkFileName = "idle-cover.png"
 
     static func localSupportURL() -> URL? {
         FileManager.default.urls(
@@ -73,6 +74,15 @@ enum NowPlayingShared {
         return unique(urls)
     }
 
+    static func readableIdleArtworkURLs() -> [URL] {
+        var urls: [URL] = []
+        urls.append(widgetSupportURL().appendingPathComponent(idleArtworkFileName))
+        if let localSupportURL = localSupportURL() {
+            urls.append(localSupportURL.appendingPathComponent(idleArtworkFileName))
+        }
+        return unique(urls)
+    }
+
     private static func unique(_ urls: [URL]) -> [URL] {
         var seen = Set<String>()
         return urls.filter { seen.insert($0.path).inserted }
@@ -92,8 +102,8 @@ struct NowPlayingSnapshot: Codable, Equatable {
     var backgroundBlue: Double
 
     static let empty = NowPlayingSnapshot(
-        title: "等待音乐播放",
-        artist: "播放歌曲后会自动更新",
+        title: "风声暂代旋律",
+        artist: "等待同步",
         album: "",
         isPlaying: false,
         sourceBundleID: "",
