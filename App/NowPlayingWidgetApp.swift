@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct NeteaseNowPlayingApp: App {
+struct NowPlayingWidgetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

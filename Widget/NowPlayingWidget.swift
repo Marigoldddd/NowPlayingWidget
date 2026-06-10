@@ -61,7 +61,7 @@ struct MusicProvider: TimelineProvider {
     }
 }
 
-struct NeteaseMusicWidgetEntryView: View {
+struct NowPlayingWidgetEntryView: View {
     let entry: MusicEntry
     @Environment(\.widgetFamily) private var family
 
@@ -445,13 +445,13 @@ struct WidgetBackground: ViewModifier {
 }
 
 @main
-struct NeteaseMusicWidget: Widget {
+struct NowPlayingWidgetExtension: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
             kind: NowPlayingShared.widgetKind,
             provider: MusicProvider()
         ) { entry in
-            NeteaseMusicWidgetEntryView(entry: entry)
+            NowPlayingWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("正在播放")
         .description("显示当前网易云音乐或 Apple Music 的歌曲、歌手、封面和播放状态。")

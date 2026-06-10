@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		100000000000000000000001 /* NeteaseNowPlayingApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* NeteaseNowPlayingApp.swift */; };
+		100000000000000000000001 /* NowPlayingWidgetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* NowPlayingWidgetApp.swift */; };
 		100000000000000000000002 /* NowPlayingMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* NowPlayingMonitor.swift */; };
 		100000000000000000000003 /* NowPlayingReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* NowPlayingReader.swift */; };
 		100000000000000000000004 /* NowPlayingShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* NowPlayingShared.swift */; };
-		100000000000000000000005 /* NeteaseMusicWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* NeteaseMusicWidget.swift */; };
+		100000000000000000000005 /* NowPlayingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* NowPlayingWidget.swift */; };
 		100000000000000000000006 /* NowPlayingShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* NowPlayingShared.swift */; };
-		100000000000000000000007 /* NeteaseMusicWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* NeteaseMusicWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		100000000000000000000007 /* NowPlayingWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* NowPlayingWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		100000000000000000000008 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* WidgetKit.framework */; };
 		100000000000000000000009 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000014 /* SwiftUI.framework */; };
 		100000000000000000000010 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* WidgetKit.framework */; };
@@ -33,7 +33,7 @@
 			containerPortal = 400000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 500000000000000000000002;
-			remoteInfo = NeteaseMusicWidget;
+			remoteInfo = NowPlayingWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -44,7 +44,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				100000000000000000000007 /* NeteaseMusicWidget.appex in Embed App Extensions */,
+				100000000000000000000007 /* NowPlayingWidgetExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -52,17 +52,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		200000000000000000000001 /* NeteaseNowPlayingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeteaseNowPlayingApp.swift; sourceTree = "<group>"; };
+		200000000000000000000001 /* NowPlayingWidgetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingWidgetApp.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* NowPlayingMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingMonitor.swift; sourceTree = "<group>"; };
 		200000000000000000000003 /* NowPlayingReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingReader.swift; sourceTree = "<group>"; };
 		200000000000000000000004 /* NowPlayingShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingShared.swift; sourceTree = "<group>"; };
-		200000000000000000000005 /* NeteaseMusicWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeteaseMusicWidget.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* NowPlayingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingWidget.swift; sourceTree = "<group>"; };
 		200000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		200000000000000000000007 /* NeteaseNowPlaying.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NeteaseNowPlaying.entitlements; sourceTree = "<group>"; };
+		200000000000000000000007 /* NowPlayingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NowPlayingWidget.entitlements; sourceTree = "<group>"; };
 		200000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		200000000000000000000009 /* NeteaseMusicWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NeteaseMusicWidget.entitlements; sourceTree = "<group>"; };
-		200000000000000000000010 /* NeteaseNowPlaying.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeteaseNowPlaying.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		200000000000000000000012 /* NeteaseMusicWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NeteaseMusicWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000009 /* NowPlayingWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NowPlayingWidgetExtension.entitlements; sourceTree = "<group>"; };
+		200000000000000000000010 /* NowPlayingWidget.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NowPlayingWidget.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000012 /* NowPlayingWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NowPlayingWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		200000000000000000000013 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		200000000000000000000014 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		200000000000000000000015 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -110,12 +110,12 @@
 		800000000000000000000002 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				200000000000000000000001 /* NeteaseNowPlayingApp.swift */,
+				200000000000000000000001 /* NowPlayingWidgetApp.swift */,
 				200000000000000000000002 /* NowPlayingMonitor.swift */,
 				200000000000000000000003 /* NowPlayingReader.swift */,
 				200000000000000000000018 /* PlaybackAppShortcuts.swift */,
 				200000000000000000000006 /* Info.plist */,
-				200000000000000000000007 /* NeteaseNowPlaying.entitlements */,
+				200000000000000000000007 /* NowPlayingWidget.entitlements */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -123,9 +123,9 @@
 		800000000000000000000003 /* Widget */ = {
 			isa = PBXGroup;
 			children = (
-				200000000000000000000005 /* NeteaseMusicWidget.swift */,
+				200000000000000000000005 /* NowPlayingWidget.swift */,
 				200000000000000000000008 /* Info.plist */,
-				200000000000000000000009 /* NeteaseMusicWidget.entitlements */,
+				200000000000000000000009 /* NowPlayingWidgetExtension.entitlements */,
 			);
 			path = Widget;
 			sourceTree = "<group>";
@@ -152,8 +152,8 @@
 		800000000000000000000006 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				200000000000000000000010 /* NeteaseNowPlaying.app */,
-				200000000000000000000012 /* NeteaseMusicWidget.appex */,
+				200000000000000000000010 /* NowPlayingWidget.app */,
+				200000000000000000000012 /* NowPlayingWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -161,9 +161,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		500000000000000000000001 /* NeteaseNowPlaying */ = {
+		500000000000000000000001 /* NowPlayingWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 900000000000000000000001 /* Build configuration list for PBXNativeTarget "NeteaseNowPlaying" */;
+			buildConfigurationList = 900000000000000000000001 /* Build configuration list for PBXNativeTarget "NowPlayingWidget" */;
 			buildPhases = (
 				A00000000000000000000001 /* Sources */,
 				700000000000000000000001 /* Frameworks */,
@@ -175,14 +175,14 @@
 			dependencies = (
 				B000000000000000000000001 /* PBXTargetDependency */,
 			);
-			name = NeteaseNowPlaying;
-			productName = NeteaseNowPlaying;
-			productReference = 200000000000000000000010 /* NeteaseNowPlaying.app */;
+			name = NowPlayingWidget;
+			productName = NowPlayingWidget;
+			productReference = 200000000000000000000010 /* NowPlayingWidget.app */;
 			productType = "com.apple.product-type.application";
 		};
-		500000000000000000000002 /* NeteaseMusicWidget */ = {
+		500000000000000000000002 /* NowPlayingWidgetExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 900000000000000000000002 /* Build configuration list for PBXNativeTarget "NeteaseMusicWidget" */;
+			buildConfigurationList = 900000000000000000000002 /* Build configuration list for PBXNativeTarget "NowPlayingWidgetExtension" */;
 			buildPhases = (
 				A00000000000000000000002 /* Sources */,
 				700000000000000000000002 /* Frameworks */,
@@ -192,9 +192,9 @@
 			);
 			dependencies = (
 			);
-			name = NeteaseMusicWidget;
-			productName = NeteaseMusicWidget;
-			productReference = 200000000000000000000012 /* NeteaseMusicWidget.appex */;
+			name = NowPlayingWidgetExtension;
+			productName = NowPlayingWidgetExtension;
+			productReference = 200000000000000000000012 /* NowPlayingWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -215,7 +215,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 900000000000000000000003 /* Build configuration list for PBXProject "NeteaseNowPlayingWidget" */;
+			buildConfigurationList = 900000000000000000000003 /* Build configuration list for PBXProject "NowPlayingWidget" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -228,8 +228,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				500000000000000000000001 /* NeteaseNowPlaying */,
-				500000000000000000000002 /* NeteaseMusicWidget */,
+				500000000000000000000001 /* NowPlayingWidget */,
+				500000000000000000000002 /* NowPlayingWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -258,7 +258,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				100000000000000000000001 /* NeteaseNowPlayingApp.swift in Sources */,
+				100000000000000000000001 /* NowPlayingWidgetApp.swift in Sources */,
 				100000000000000000000002 /* NowPlayingMonitor.swift in Sources */,
 				100000000000000000000003 /* NowPlayingReader.swift in Sources */,
 				100000000000000000000004 /* NowPlayingShared.swift in Sources */,
@@ -271,7 +271,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				100000000000000000000005 /* NeteaseMusicWidget.swift in Sources */,
+				100000000000000000000005 /* NowPlayingWidget.swift in Sources */,
 				100000000000000000000006 /* NowPlayingShared.swift in Sources */,
 				100000000000000000000016 /* PlaybackControlIntent.swift in Sources */,
 			);
@@ -282,7 +282,7 @@
 /* Begin PBXTargetDependency section */
 		B000000000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 500000000000000000000002 /* NeteaseMusicWidget */;
+			target = 500000000000000000000002 /* NowPlayingWidgetExtension */;
 			targetProxy = 300000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -401,7 +401,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/NeteaseNowPlaying.entitlements;
+				CODE_SIGN_ENTITLEMENTS = App/NowPlayingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 11;
@@ -413,8 +413,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NeteaseNowPlaying;
-				PRODUCT_NAME = NeteaseNowPlaying;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget;
+				PRODUCT_NAME = NowPlayingWidget;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -423,7 +423,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/NeteaseNowPlaying.entitlements;
+				CODE_SIGN_ENTITLEMENTS = App/NowPlayingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 11;
@@ -435,8 +435,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NeteaseNowPlaying;
-				PRODUCT_NAME = NeteaseNowPlaying;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget;
+				PRODUCT_NAME = NowPlayingWidget;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -446,7 +446,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Widget/NeteaseMusicWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Widget/NowPlayingWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -457,8 +457,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NeteaseNowPlaying.widget;
-				PRODUCT_NAME = NeteaseMusicWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget.widget;
+				PRODUCT_NAME = NowPlayingWidgetExtension;
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = appex;
@@ -470,7 +470,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Widget/NeteaseMusicWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Widget/NowPlayingWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -481,8 +481,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NeteaseNowPlaying.widget;
-				PRODUCT_NAME = NeteaseMusicWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget.widget;
+				PRODUCT_NAME = NowPlayingWidgetExtension;
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = appex;
@@ -492,7 +492,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		900000000000000000000001 /* Build configuration list for PBXNativeTarget "NeteaseNowPlaying" */ = {
+		900000000000000000000001 /* Build configuration list for PBXNativeTarget "NowPlayingWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C000000000000000000000003 /* Debug */,
@@ -501,7 +501,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		900000000000000000000002 /* Build configuration list for PBXNativeTarget "NeteaseMusicWidget" */ = {
+		900000000000000000000002 /* Build configuration list for PBXNativeTarget "NowPlayingWidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C000000000000000000000005 /* Debug */,
@@ -510,7 +510,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		900000000000000000000003 /* Build configuration list for PBXProject "NeteaseNowPlayingWidget" */ = {
+		900000000000000000000003 /* Build configuration list for PBXProject "NowPlayingWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C000000000000000000000001 /* Debug */,

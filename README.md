@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.png" alt="Now Playing Widget logo" width="96">
+
 # Now Playing Widget
 
 ### 把正在播放的音乐，放回 macOS 桌面。
@@ -43,7 +45,7 @@
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/image1_netease.png" alt="网易云音乐预览" width="420">
+      <img src="docs/image1_netease_music.png" alt="网易云音乐预览" width="420">
       <br>
       <sub>网易云音乐</sub>
     </td>
@@ -101,11 +103,11 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 ### 2. 使用 Xcode 运行
 
 1. 克隆本仓库；
-2. 用 Xcode 打开 `NeteaseNowPlayingWidget.xcodeproj`；
-3. 分别选择 `NeteaseNowPlaying` 和 `NeteaseMusicWidget`；
+2. 用 Xcode 打开 `NowPlayingWidget.xcodeproj`；
+3. 分别选择 `NowPlayingWidget` 和 `NowPlayingWidgetExtension`；
 4. 在 **Signing & Capabilities** 中设置自己的 Team；
 5. 建议把两个 Bundle Identifier 改成自己的反向域名；
-6. 构建并运行 `NeteaseNowPlaying`；
+6. 构建并运行 `NowPlayingWidget`；
 7. 播放网易云音乐或 Apple Music；
 8. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
 
@@ -115,9 +117,7 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 立即刷新 / 打开数据目录 / 退出
 ```
 
-> 项目最初以网易云音乐为主要目标，因此部分 target 名称仍保留了 `Netease`。
-
----
+> ---
 
 ## ⚙️ 配置
 
@@ -149,7 +149,7 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 默认数据写入位置：
 
 ```text
-~/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/
+~/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NowPlayingWidget/
 ```
 
 里面主要有两个文件：
@@ -192,7 +192,7 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 查看写入的数据：
 
 ```sh
-cat "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/nowplaying.json"
+cat "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NowPlayingWidget/nowplaying.json"
 ```
 
 </details>
@@ -217,7 +217,7 @@ killall NotificationCenter
 <summary>如何查看封面是否正常写入？</summary>
 
 ```sh
-sips -g pixelWidth -g pixelHeight "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/cover.jpg"
+sips -g pixelWidth -g pixelHeight "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NowPlayingWidget/cover.jpg"
 ```
 
 </details>

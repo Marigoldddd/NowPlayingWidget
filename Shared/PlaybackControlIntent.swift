@@ -52,7 +52,7 @@ enum PlaybackCommand: String {
 
 enum PlaybackControlRunner {
     private static let logger = Logger(
-        subsystem: "com.marigold.NeteaseNowPlaying",
+        subsystem: "com.marigold.NowPlayingWidget",
         category: "PlaybackControl"
     )
 

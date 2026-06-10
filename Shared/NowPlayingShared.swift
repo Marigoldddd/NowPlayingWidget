@@ -1,9 +1,9 @@
 import Foundation
 
 enum NowPlayingShared {
-    static let widgetKind = "com.marigold.NeteaseNowPlaying.widget"
-    static let widgetBundleID = "com.marigold.NeteaseNowPlaying.widget"
-    static let supportFolderName = "NeteaseNowPlaying"
+    static let widgetKind = "com.marigold.NowPlayingWidget.widget"
+    static let widgetBundleID = "com.marigold.NowPlayingWidget.widget"
+    static let supportFolderName = "NowPlayingWidget"
     static let dataFileName = "nowplaying.json"
     static let artworkFileName = "cover.jpg"
     static let idleArtworkFileName = "idle-cover.png"
