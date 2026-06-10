@@ -11,9 +11,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-green.svg)](https://www.apple.com/macos/)
-[![Swift](https://img.shields.io/badge/Swift-WidgetKit-orange.svg)](https://developer.apple.com/documentation/widgetkit) 
-[![NetEase Music](https://img.shields.io/badge/NetEase%20Music-Supported-red.svg)](https://music.163.com/) 
+[![Swift](https://img.shields.io/badge/Swift-WidgetKit-orange.svg)](https://developer.apple.com/documentation/widgetkit)
+[![NetEase Music](https://img.shields.io/badge/NetEase%20Music-Supported-red.svg)](https://music.163.com/)
 [![Apple Music](https://img.shields.io/badge/Apple%20Music-Supported-fa243c.svg)](https://music.apple.com/)
+
+</div>
 
 ---
 
@@ -115,7 +117,7 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 立即刷新 / 打开数据目录 / 退出
 ```
 
-> ---
+---
 
 ## ⚙️ 配置
 
@@ -243,13 +245,14 @@ pluginkit -m -A -D -v -i <widget-bundle-id>
 
 ## 🗺️ 后续计划
 
-- [x] 自定义未播放状态显示图片
-- [x] 播放 / 暂停 / 上一首 / 下一首控制
-- [ ] 更多小组件样式
-- [ ] 支持更多播放器
-- [ ] 提供预编译安装包
-- [ ] 更完善的设置界面
-- [ ] 更稳定的刷新策略
+* [x] 自定义未播放状态显示图片
+* [x] 播放 / 暂停 / 上一首 / 下一首控制
+* [ ] 更多小组件样式
+* [ ] 支持更多播放器
+* [ ] 提供预编译安装包
+* [ ] 更完善的设置界面
+* [ ] 更稳定的刷新策略
+
 ---
 
 ## 📄 许可证
