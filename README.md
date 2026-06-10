@@ -6,7 +6,7 @@
 
 ### 把正在播放的音乐，放回 macOS 桌面。
 
-支持网易云音乐与 Apple Music。
+支持网易云音乐、Apple Music 与 Spotify。
 显示歌曲、歌手、专辑、封面、播放状态，并支持播放控制与自定义未播放页。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -14,6 +14,7 @@
 [![Swift](https://img.shields.io/badge/Swift-WidgetKit-orange.svg)](https://developer.apple.com/documentation/widgetkit)
 [![NetEase Music](https://img.shields.io/badge/NetEase%20Music-Supported-red.svg)](https://music.163.com/)
 [![Apple Music](https://img.shields.io/badge/Apple%20Music-Supported-fa243c.svg)](https://music.apple.com/)
+[![Spotify](https://img.shields.io/badge/Spotify-Supported-1DB954.svg)](https://www.spotify.com/)
 
 </div>
 
@@ -108,7 +109,7 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 4. 在 **Signing & Capabilities** 中设置自己的 Team；
 5. 建议把两个 Bundle Identifier 改成自己的反向域名；
 6. 构建并运行 `NowPlayingWidget`；
-7. 播放网易云音乐或 Apple Music；
+7. 播放网易云音乐、Apple Music 或 Spotify；
 8. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
 
 运行后，菜单栏可以进行：
@@ -126,6 +127,7 @@ private let executable = "/opt/homebrew/bin/nowplaying-cli"
 ```text
 com.netease.163music
 com.apple.Music
+com.spotify.client
 ```
 
 当前显示哪个播放器，取决于 macOS 系统当前暴露的正在播放信息。
@@ -179,7 +181,7 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 请先确认：
 
 1. 菜单栏助手正在运行；
-2. 网易云音乐或 Apple Music 正在播放；
+2. 网易云音乐、Apple Music 或 Spotify 正在播放；
 3. `nowplaying-cli` 可以正常读取信息；
 4. 桌面上添加的是当前构建出来的小组件。
 

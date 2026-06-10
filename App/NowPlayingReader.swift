@@ -11,6 +11,7 @@ final class NowPlayingReader {
     private let supportedBundleIDs: Set<String> = [
         "com.netease.163music",
         "com.apple.Music",
+        "com.spotify.client",
     ]
 
     func read() async throws -> NowPlayingReadResult {

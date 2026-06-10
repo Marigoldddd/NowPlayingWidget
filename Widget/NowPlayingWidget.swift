@@ -160,6 +160,8 @@ struct NowPlayingWidgetEntryView: View {
             return "Apple Music"
         case "com.netease.163music":
             return "网易云音乐"
+        case "com.spotify.client":
+            return "Spotify"
         default:
             return ""
         }
@@ -454,7 +456,7 @@ struct NowPlayingWidgetExtension: Widget {
             NowPlayingWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("正在播放")
-        .description("显示当前网易云音乐或 Apple Music 的歌曲、歌手、封面和播放状态。")
+        .description("显示当前网易云音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
     }
