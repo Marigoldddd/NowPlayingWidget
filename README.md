@@ -1,167 +1,209 @@
+<div align="center">
+
 # Now Playing Widget
 
-一个面向 macOS 桌面的音乐正在播放小组件，支持网易云音乐和 Apple Music。
+### 把正在播放的音乐，放回 macOS 桌面。
 
-它由一个菜单栏助手和一个 WidgetKit 小组件组成：菜单栏助手读取系统正在播放信息，写入本地 JSON 和封面文件；小组件读取这些数据，在桌面显示歌曲、歌手、专辑、播放状态和封面。小组件背景会根据封面主色自动生成深色渐变。
+支持网易云音乐与 Apple Music。
+显示歌曲、歌手、专辑、封面、播放状态，并支持播放控制与自定义未播放页。
 
 
-## 预览
+<img src="https://img.shields.io/badge/macOS-14%2B-black" alt="macOS 14+">
+<img src="https://img.shields.io/badge/Swift-WidgetKit-orange" alt="Swift WidgetKit">
+<img src="https://img.shields.io/badge/播放器-网易云音乐%20%7C%20Apple%20Music-red" alt="支持播放器">
+<img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License">
 
-中号小组件显示完整播放器卡片，小号小组件显示精简信息。下面两张预览使用相同显示宽度，便于对比不同播放器的数据来源。
+</div>
 
-<p>
-  <img src="docs/image1_netease.png" alt="网易云音乐预览" width="420">
-</p>
+---
 
-<p>
-  <img src="docs/image2_applemusic.png" alt="Apple Music 预览" width="420">
-</p>
+## ✨ 这是什么？
 
-## 特性
+**Now Playing Widget** 是一个 macOS 桌面音乐小组件。
 
-- 显示网易云音乐或 Apple Music 当前歌曲、歌手、专辑、播放状态和封面。
-- 根据封面平均色生成小组件背景。
-- 支持 macOS 桌面小号和中号小组件。
-- 菜单栏助手提供手动刷新、打开数据目录和退出。
-- 不依赖 App Group，降低个人开发者签名配置成本。
-- 没有后端服务，播放数据只写入本机小组件容器。
+它不是播放器，也不会接管你的音乐应用。
+它只是把系统当前正在播放的音乐信息，整理成一张更适合放在桌面上的卡片。
 
-## 环境要求
+<div align="center">
 
-- macOS 14 Sonoma 或更新版本
-- Xcode
-- Homebrew
-- 网易云音乐 macOS 客户端或 Apple Music
-- `nowplaying-cli`
+| 🎵 正在播放       | 🖼️ 封面背景     | 🕹️ 播放控制            |
+| ------------- | ------------ | ------------------- |
+| 歌曲、歌手、专辑、播放状态 | 根据封面生成深色渐变背景 | 播放 / 暂停 / 上一首 / 下一首 |
 
-安装依赖：
+| 💤 未播放状态  | 🧩 小组件尺寸   | 🔒 本地数据     |
+| --------- | ---------- | ----------- |
+| 支持自定义显示图片 | 支持小号与中号小组件 | 不上传数据，无后端服务 |
+
+</div>
+
+---
+
+## 🖼️ 效果预览
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/image1_netease.png" alt="网易云音乐预览" width="420">
+      <br>
+      <sub>网易云音乐</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/image2_applemusic.png" alt="Apple Music 预览" width="420">
+      <br>
+      <sub>Apple Music</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/image3_Transparent.png" alt="透明渲染模式" width="420">
+      <br>
+      <sub>透明渲染模式</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/image4_idle.png" alt="未播放状态" width="420">
+      <br>
+      <sub>未播放状态</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🚀 快速开始
+
+### 1. 安装依赖
 
 ```sh
 brew install nowplaying-cli
 ```
 
-默认读取路径是：
+项目默认读取：
 
 ```text
 /opt/homebrew/bin/nowplaying-cli
 ```
 
-如果你的 Homebrew 不在 `/opt/homebrew`，需要修改 [App/NowPlayingReader.swift](App/NowPlayingReader.swift) 里的路径：
+如果你的 Homebrew 路径不同，可以先查看：
+
+```sh
+which nowplaying-cli
+```
+
+然后修改：
 
 ```swift
+// App/NowPlayingReader.swift
 private let executable = "/opt/homebrew/bin/nowplaying-cli"
 ```
 
-## 快速开始
+---
 
-1. 克隆仓库。
-2. 用 Xcode 打开 `NeteaseNowPlayingWidget.xcodeproj`。
-3. 选择 `NeteaseNowPlaying` target，在 Signing & Capabilities 中选择你自己的 Team。
-4. 选择 `NeteaseMusicWidget` target，也设置同一个 Team。
-5. 建议把两个 Bundle Identifier 改成你自己的反向域名。
-6. 构建并运行 `NeteaseNowPlaying`。
-7. 打开网易云音乐或 Apple Music 并播放歌曲。
-8. 在桌面右键进入“编辑小组件”，添加小组件。
+### 2. 使用 Xcode 运行
 
-启动成功后，菜单栏会出现一个小图标。菜单包含：
+1. 克隆本仓库；
+2. 用 Xcode 打开 `NeteaseNowPlayingWidget.xcodeproj`；
+3. 分别选择 `NeteaseNowPlaying` 和 `NeteaseMusicWidget`；
+4. 在 **Signing & Capabilities** 中设置自己的 Team；
+5. 建议把两个 Bundle Identifier 改成自己的反向域名；
+6. 构建并运行 `NeteaseNowPlaying`；
+7. 播放网易云音乐或 Apple Music；
+8. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
 
-- `立即刷新`
-- `打开数据目录`
-- `退出`
+运行后，菜单栏可以进行：
 
-## 命令行构建
-
-也可以用命令行构建。把 `<YOUR_TEAM_ID>` 替换成你的 Apple Developer Team ID：
-
-```sh
-xcodebuild \
-  -project NeteaseNowPlayingWidget.xcodeproj \
-  -scheme NeteaseNowPlaying \
-  -configuration Release \
-  DEVELOPMENT_TEAM=<YOUR_TEAM_ID> \
-  build
+```text
+立即刷新 / 打开数据目录 / 退出
 ```
 
-构建产物会生成在 Xcode 的 DerivedData 目录中。**首次使用仍建议通过 Xcode 打开项目，检查签名、Bundle Identifier 和 Widget Extension 是否正常。**
+> 项目最初以网易云音乐为主要目标，因此部分 target 名称仍保留了 `Netease`。
 
-## 配置
+---
 
-项目默认处理以下播放器：
+## ⚙️ 配置
+
+### 支持的播放器
 
 ```text
 com.netease.163music
 com.apple.Music
 ```
 
-如果修改了 Widget Extension 的 Bundle Identifier，需要同步修改 [Shared/NowPlayingShared.swift](Shared/NowPlayingShared.swift)：
+当前显示哪个播放器，取决于 macOS 系统当前暴露的正在播放信息。
+
+---
+
+### Widget 标识符
+
+如果修改了 Widget Extension 的 Bundle Identifier，需要同步修改：
 
 ```swift
+// Shared/NowPlayingShared.swift
 static let widgetKind = "<your-widget-bundle-id>"
 static let widgetBundleID = "<your-widget-bundle-id>"
 ```
 
-默认数据目录：
+---
+
+### 数据目录
+
+默认数据写入位置：
 
 ```text
 ~/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/
 ```
 
-主要文件：
+里面主要有两个文件：
 
-- `nowplaying.json`：歌曲、歌手、专辑、播放状态、封面状态和背景色。
-- `cover.jpg`：系统正在播放信息提供的封面图。
+| 文件                | 作用                       |
+| ----------------- | ------------------------ |
+| `nowplaying.json` | 保存歌曲、歌手、专辑、播放状态、封面状态和背景色 |
+| `cover.jpg`       | 保存当前歌曲封面                 |
 
-## 工作方式
+---
 
-项目包含两个 target：
+## 🧠 实现简述
 
-- `NeteaseNowPlaying`：菜单栏助手，每 3 秒读取一次 `nowplaying-cli get-raw`。
-- `NeteaseMusicWidget`：WidgetKit 扩展，读取本地 JSON 和封面文件并渲染小组件。
+项目由一个菜单栏助手和一个 WidgetKit 小组件组成。
 
-刷新流程：
+菜单栏助手负责读取 macOS 正在播放信息，并把歌曲数据写入本地文件；小组件读取这些文件后，在桌面上渲染正在播放卡片。
 
-1. 菜单栏助手轮询当前播放信息。
-2. 当歌曲、歌手、专辑、播放状态、封面或背景色变化时，写入本地文件。
-3. 写入后调用 `WidgetCenter` 请求刷新小组件 timeline。
-4. WidgetKit 根据系统刷新策略更新桌面小组件。
+为了降低本地构建和签名配置成本，项目没有使用 App Group，而是直接写入 Widget Extension 的容器目录。因此修改 Widget Bundle Identifier 后，需要同步修改共享配置。
 
-## 排障
+---
 
-如果小组件一直显示等待状态，先确认：
+## 🛠️ 常见问题
 
-1. 菜单栏助手正在运行。
-2. 网易云音乐或 Apple Music 正在播放。
-3. `nowplaying-cli` 可以正常读取正在播放信息。
-4. 桌面上添加的是当前构建出来的“正在播放”小组件。
+<details>
+<summary>小组件一直显示等待状态</summary>
 
-检查 `nowplaying-cli`：
+请先确认：
+
+1. 菜单栏助手正在运行；
+2. 网易云音乐或 Apple Music 正在播放；
+3. `nowplaying-cli` 可以正常读取信息；
+4. 桌面上添加的是当前构建出来的小组件。
+
+检查命令：
 
 ```sh
 /opt/homebrew/bin/nowplaying-cli get-raw
 ```
 
-查看当前写入的数据：
+查看写入的数据：
 
 ```sh
 cat "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/nowplaying.json"
 ```
 
-查看封面尺寸：
+</details>
 
-```sh
-sips -g pixelWidth -g pixelHeight "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/cover.jpg"
-```
+<details>
+<summary>数据已经更新，但小组件没有变化</summary>
 
-查看系统注册的小组件扩展：
+可以尝试：
 
-```sh
-pluginkit -m -A -D -v -i <widget-bundle-id>
-```
-
-如果数据文件已经更新，但桌面小组件没有变化，可以尝试：
-
-1. 点击菜单栏助手里的 `立即刷新`。
-2. 移除桌面上的旧小组件后重新添加。
+1. 点击菜单栏助手里的 `立即刷新`；
+2. 移除桌面上的旧小组件后重新添加；
 3. 重启 WidgetKit 相关缓存：
 
 ```sh
@@ -169,14 +211,49 @@ killall chronod
 killall NotificationCenter
 ```
 
-## 已知限制
+</details>
 
-- `nowplaying-cli` 依赖 macOS 私有 MediaRemote 信息，系统更新后可能失效或行为变化。
-- 网易云音乐提供给系统的封面通常分辨率较低，常见约为 `100x100`，因此小组件封面可能不如客户端内高清。
-- WidgetKit 有刷新预算和缓存策略，切歌后不会像普通 App UI 一样毫秒级实时刷新。
-- 当前支持网易云音乐和 Apple Music，没有做播放器优先级选择；系统正在播放信息来自哪个播放器，就显示哪个播放器。
-- 项目没有使用 App Group，因此修改 Widget Bundle Identifier 后必须同步修改代码里的容器路径常量。
+<details>
+<summary>如何查看封面是否正常写入？</summary>
 
-## 许可证
+```sh
+sips -g pixelWidth -g pixelHeight "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Support/NeteaseNowPlaying/cover.jpg"
+```
 
-MIT License. See [LICENSE](LICENSE) for details.
+</details>
+
+<details>
+<summary>如何查看系统是否注册了小组件？</summary>
+
+```sh
+pluginkit -m -A -D -v -i <widget-bundle-id>
+```
+
+</details>
+
+---
+
+## ⚠️ 已知限制
+
+* `nowplaying-cli` 依赖 macOS 的 MediaRemote 信息，系统更新后可能出现行为变化；
+* 网易云音乐提供给系统的封面分辨率通常较低，常见约为 `100x100`；
+* WidgetKit 有刷新预算和缓存策略，切歌后不一定立即刷新；
+* 当前没有做播放器优先级选择，显示内容取决于 macOS 当前暴露的正在播放信息；
+* 当前没有使用 App Group，修改 Widget Bundle Identifier 后需要同步修改配置。
+
+---
+
+## 🗺️ 后续计划
+
+- [x] 自定义未播放状态显示图片
+- [x] 播放 / 暂停 / 上一首 / 下一首控制
+- [ ] 更多小组件样式
+- [ ] 支持更多播放器
+- [ ] 提供预编译安装包
+- [ ] 更完善的设置界面
+- [ ] 更稳定的刷新策略
+---
+
+## 📄 许可证
+
+本项目基于 MIT License 开源，详情见 [LICENSE](LICENSE)。

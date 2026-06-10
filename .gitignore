@@ -8,3 +8,5 @@ xcuserdata/
 *.xcscmblueprint
 BuildDerivedData/
 InstallDerivedData/
+
+*.xcodeproj/project.xcworkspace/
