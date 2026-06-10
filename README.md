@@ -9,13 +9,11 @@
 支持网易云音乐与 Apple Music。
 显示歌曲、歌手、专辑、封面、播放状态，并支持播放控制与自定义未播放页。
 
-
-<img src="https://img.shields.io/badge/macOS-14%2B-black" alt="macOS 14+">
-<img src="https://img.shields.io/badge/Swift-WidgetKit-orange" alt="Swift WidgetKit">
-<img src="https://img.shields.io/badge/播放器-网易云音乐%20%7C%20Apple%20Music-red" alt="支持播放器">
-<img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License">
-
-</div>
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-green.svg)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-WidgetKit-orange.svg)](https://developer.apple.com/documentation/widgetkit) 
+[![NetEase Music](https://img.shields.io/badge/NetEase%20Music-Supported-red.svg)](https://music.163.com/) 
+[![Apple Music](https://img.shields.io/badge/Apple%20Music-Supported-fa243c.svg)](https://music.apple.com/)
 
 ---
 
