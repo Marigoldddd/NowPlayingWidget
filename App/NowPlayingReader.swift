@@ -7,7 +7,6 @@ struct NowPlayingReadResult {
 }
 
 final class NowPlayingReader {
-    private let executable = "/opt/homebrew/bin/nowplaying-cli"
     private let supportedBundleIDs: Set<String> = [
         "com.netease.163music",
         "com.apple.Music",
@@ -50,19 +49,7 @@ final class NowPlayingReader {
     }
 
     private func runNowPlayingCLI() throws -> Data {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = ["get-raw"]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = output
-
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        return data
+        try NowPlayingCLI.run(arguments: ["get-raw"])
     }
 
     private func extractJSONObject(from data: Data) throws -> Data {

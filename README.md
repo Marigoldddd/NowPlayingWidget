@@ -74,49 +74,49 @@
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 下载使用
 
-```sh
-brew install nowplaying-cli
-```
+从 GitHub Releases 下载 DMG，将 `NowPlayingWidget.app` 拖入
+`Applications` 后运行即可。
 
-项目默认读取：
+Release 版本已经内置 Universal `arm64 + x86_64` 的
+`nowplaying-cli 2.1.0`，不需要安装 Homebrew 或额外依赖。
 
-```text
-/opt/homebrew/bin/nowplaying-cli
-```
-
-如果你的 Homebrew 路径不同，可以先查看：
-
-```sh
-which nowplaying-cli
-```
-
-然后修改：
-
-```swift
-// App/NowPlayingReader.swift
-private let executable = "/opt/homebrew/bin/nowplaying-cli"
-```
-
----
-
-### 2. 使用 Xcode 运行
+### 使用 Xcode 运行
 
 1. 克隆本仓库；
 2. 用 Xcode 打开 `NowPlayingWidget.xcodeproj`；
-3. 分别选择 `NowPlayingWidget` 和 `NowPlayingWidgetExtension`；
-4. 在 **Signing & Capabilities** 中设置自己的 Team；
-5. 建议把两个 Bundle Identifier 改成自己的反向域名；
-6. 构建并运行 `NowPlayingWidget`；
-7. 播放网易云音乐、Apple Music 或 Spotify；
-8. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
+3. 首次构建会从固定的上游源码构建 Universal `nowplaying-cli`；
+4. 分别选择 `NowPlayingWidget` 和 `NowPlayingWidgetExtension`；
+5. 在 **Signing & Capabilities** 中设置自己的 Team；
+6. 建议把两个 Bundle Identifier 改成自己的反向域名；
+7. 构建并运行 `NowPlayingWidget`；
+8. 播放网易云音乐、Apple Music 或 Spotify；
+9. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
 
 运行后，菜单栏可以进行：
 
 ```text
 立即刷新 / 打开数据目录 / 退出
 ```
+
+### 构建 GitHub Release DMG
+
+```sh
+./Scripts/build-release-dmg.sh
+```
+
+输出文件位于：
+
+```text
+build/release/NowPlayingWidget-v<version>-macOS-universal.dmg
+```
+
+构建成功后会自动删除 DerivedData 和 DMG 暂存目录，只保留最终的
+`.dmg` 发布文件。
+
+生成的 DMG 使用 ad-hoc 签名，没有 Apple 公证。首次打开时可能需要在
+Finder 中右键应用并选择「打开」。
 
 ---
 
@@ -182,13 +182,13 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 
 1. 菜单栏助手正在运行；
 2. 网易云音乐、Apple Music 或 Spotify 正在播放；
-3. `nowplaying-cli` 可以正常读取信息；
+3. 内置的 `nowplaying-cli` 可以正常读取信息；
 4. 桌面上添加的是当前构建出来的小组件。
 
 检查命令：
 
 ```sh
-/opt/homebrew/bin/nowplaying-cli get-raw
+"/Applications/NowPlayingWidget.app/Contents/Resources/nowplaying-cli/bin/nowplaying-cli" get-raw
 ```
 
 查看写入的数据：
@@ -245,10 +245,22 @@ pluginkit -m -A -D -v -i <widget-bundle-id>
 
 ---
 
+## 🧩 第三方组件
+
+Release 版本内置
+[`nowplaying-cli 2.1.0`](https://github.com/kirtan-shah/nowplaying-cli)，
+该组件采用 GPL-3.0-or-later 许可证。
+
+应用资源目录中同时包含其完整 GPL 许可证和对应版本的源代码压缩包。
+本项目自身仍采用 MIT License。
+
+---
+
 ## 🗺️ 后续计划
 
 * [x] 自定义未播放状态显示图片
 * [x] 播放 / 暂停 / 上一首 / 下一首控制
+* [x] 内置 Universal `nowplaying-cli`
 * [ ] 更多小组件样式
 * [ ] 支持更多播放器
 * [ ] 提供预编译安装包

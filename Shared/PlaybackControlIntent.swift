@@ -56,39 +56,17 @@ enum PlaybackControlRunner {
         category: "PlaybackControl"
     )
 
-    private static let executableCandidates = [
-        "/opt/homebrew/bin/nowplaying-cli",
-        "/usr/local/bin/nowplaying-cli",
-    ]
-
     static func run(_ command: PlaybackCommand) throws {
-        guard let executable = executableCandidates.first(where: {
-            FileManager.default.isExecutableFile(atPath: $0)
-        }) else {
+        guard let executable = NowPlayingCLI.executableURL else {
             logger.error("nowplaying-cli not found")
             throw CocoaError(.fileNoSuchFile)
         }
 
-        logger.info("Running nowplaying-cli \(command.rawValue, privacy: .public)")
+        logger.info(
+            "Running \(executable.path, privacy: .private) \(command.rawValue, privacy: .public)"
+        )
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = [command.rawValue]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = output
-
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        if process.terminationStatus != 0 {
-            let text = String(data: data, encoding: .utf8) ?? ""
-            logger.error("nowplaying-cli \(command.rawValue, privacy: .public) failed: \(text, privacy: .public)")
-            throw CocoaError(.executableLoad)
-        }
-
+        _ = try NowPlayingCLI.run(arguments: [command.rawValue])
         logger.info("nowplaying-cli \(command.rawValue, privacy: .public) finished")
         WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
     }

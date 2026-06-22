@@ -25,6 +25,10 @@
 		100000000000000000000015 /* PlaybackControlIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000017 /* PlaybackControlIntent.swift */; };
 		100000000000000000000016 /* PlaybackControlIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000017 /* PlaybackControlIntent.swift */; };
 		100000000000000000000017 /* PlaybackAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000018 /* PlaybackAppShortcuts.swift */; };
+		100000000000000000000019 /* NowPlayingCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000019 /* NowPlayingCLI.swift */; };
+		100000000000000000000020 /* NowPlayingCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000019 /* NowPlayingCLI.swift */; };
+		100000000000000000000021 /* nowplaying-cli in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* nowplaying-cli */; };
+		100000000000000000000022 /* nowplaying-cli in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* nowplaying-cli */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +73,8 @@
 		200000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		200000000000000000000017 /* PlaybackControlIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackControlIntent.swift; sourceTree = "<group>"; };
 		200000000000000000000018 /* PlaybackAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackAppShortcuts.swift; sourceTree = "<group>"; };
+		200000000000000000000019 /* NowPlayingCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingCLI.swift; sourceTree = "<group>"; };
+		200000000000000000000020 /* nowplaying-cli */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "nowplaying-cli"; path = "ThirdParty/nowplaying-cli"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +107,7 @@
 				800000000000000000000002 /* App */,
 				800000000000000000000003 /* Widget */,
 				800000000000000000000004 /* Shared */,
+				800000000000000000000007 /* ThirdParty */,
 				200000000000000000000016 /* Assets.xcassets */,
 				800000000000000000000005 /* Frameworks */,
 				800000000000000000000006 /* Products */,
@@ -134,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000004 /* NowPlayingShared.swift */,
+				200000000000000000000019 /* NowPlayingCLI.swift */,
 				200000000000000000000017 /* PlaybackControlIntent.swift */,
 			);
 			path = Shared;
@@ -158,6 +166,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		800000000000000000000007 /* ThirdParty */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000020 /* nowplaying-cli */,
+			);
+			name = ThirdParty;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -168,6 +184,7 @@
 				A00000000000000000000001 /* Sources */,
 				700000000000000000000001 /* Frameworks */,
 				D00000000000000000000001 /* Resources */,
+				E00000000000000000000002 /* Sign Bundled CLI */,
 				600000000000000000000001 /* Embed App Extensions */,
 			);
 			buildRules = (
@@ -184,9 +201,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 900000000000000000000002 /* Build configuration list for PBXNativeTarget "NowPlayingWidgetExtension" */;
 			buildPhases = (
+				E00000000000000000000001 /* Prepare Bundled CLI */,
 				A00000000000000000000002 /* Sources */,
 				700000000000000000000002 /* Frameworks */,
 				D00000000000000000000002 /* Resources */,
+				E00000000000000000000003 /* Sign Bundled CLI */,
 			);
 			buildRules = (
 			);
@@ -240,6 +259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				100000000000000000000014 /* Assets.xcassets in Resources */,
+				100000000000000000000021 /* nowplaying-cli in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,10 +268,59 @@
 			buildActionMask = 2147483647;
 			files = (
 				100000000000000000000018 /* Assets.xcassets in Resources */,
+				100000000000000000000022 /* nowplaying-cli in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E00000000000000000000001 /* Prepare Bundled CLI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Prepare Bundled CLI";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$PROJECT_DIR/Scripts/prepare-bundled-cli.sh\"\n";
+		};
+		E00000000000000000000002 /* Sign Bundled CLI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Sign Bundled CLI";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "CLI_ROOT=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/nowplaying-cli\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\nif [ -x \"$CLI_ROOT/bin/nowplaying-cli\" ]; then\n  /usr/bin/codesign --force --sign \"$IDENTITY\" \"$CLI_ROOT/bin/nowplaying-cli\"\nfi\nif [ -f \"$CLI_ROOT/lib/nowplaying-cli/MediaRemoteMini.dylib\" ]; then\n  /usr/bin/codesign --force --sign \"$IDENTITY\" \"$CLI_ROOT/lib/nowplaying-cli/MediaRemoteMini.dylib\"\nfi\n";
+		};
+		E00000000000000000000003 /* Sign Bundled CLI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Sign Bundled CLI";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "CLI_ROOT=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/nowplaying-cli\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\nif [ -x \"$CLI_ROOT/bin/nowplaying-cli\" ]; then\n  /usr/bin/codesign --force --sign \"$IDENTITY\" \"$CLI_ROOT/bin/nowplaying-cli\"\nfi\nif [ -f \"$CLI_ROOT/lib/nowplaying-cli/MediaRemoteMini.dylib\" ]; then\n  /usr/bin/codesign --force --sign \"$IDENTITY\" \"$CLI_ROOT/lib/nowplaying-cli/MediaRemoteMini.dylib\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A00000000000000000000001 /* Sources */ = {
@@ -262,6 +331,7 @@
 				100000000000000000000002 /* NowPlayingMonitor.swift in Sources */,
 				100000000000000000000003 /* NowPlayingReader.swift in Sources */,
 				100000000000000000000004 /* NowPlayingShared.swift in Sources */,
+				100000000000000000000019 /* NowPlayingCLI.swift in Sources */,
 				100000000000000000000015 /* PlaybackControlIntent.swift in Sources */,
 				100000000000000000000017 /* PlaybackAppShortcuts.swift in Sources */,
 			);
@@ -273,6 +343,7 @@
 			files = (
 				100000000000000000000005 /* NowPlayingWidget.swift in Sources */,
 				100000000000000000000006 /* NowPlayingShared.swift in Sources */,
+				100000000000000000000020 /* NowPlayingCLI.swift in Sources */,
 				100000000000000000000016 /* PlaybackControlIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
