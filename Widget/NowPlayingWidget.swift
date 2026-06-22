@@ -1,5 +1,4 @@
 import AppKit
-import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -175,38 +174,34 @@ struct NowPlayingWidgetEntryView: View {
 
     private var controlsView: some View {
         HStack(spacing: 24) {
-            Button(intent: PreviousTrackIntent()) {
+            Link(destination: PlaybackCommand.previous.url) {
                 Image(systemName: "backward.fill")
                     .font(.system(size: 15, weight: .bold))
                     .frame(width: 28, height: 28)
             }
-            .buttonStyle(.plain)
             .contentShape(Rectangle())
 
             if entry.snapshot.isPlaying {
-                Button(intent: PauseTrackIntent()) {
+                Link(destination: PlaybackCommand.pause.url) {
                     Image(systemName: "pause.fill")
                         .font(.system(size: 20, weight: .bold))
                         .frame(width: 34, height: 34)
                 }
-                .buttonStyle(.plain)
                 .contentShape(Rectangle())
             } else {
-                Button(intent: PlayTrackIntent()) {
+                Link(destination: PlaybackCommand.play.url) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 20, weight: .bold))
                         .frame(width: 34, height: 34)
                 }
-                .buttonStyle(.plain)
                 .contentShape(Rectangle())
             }
 
-            Button(intent: NextTrackIntent()) {
+            Link(destination: PlaybackCommand.next.url) {
                 Image(systemName: "forward.fill")
                     .font(.system(size: 15, weight: .bold))
                     .frame(width: 28, height: 28)
             }
-            .buttonStyle(.plain)
             .contentShape(Rectangle())
         }
         .foregroundStyle(.white)

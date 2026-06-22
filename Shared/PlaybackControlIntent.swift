@@ -8,7 +8,7 @@ struct PreviousTrackIntent: AudioPlaybackIntent {
     static var description = IntentDescription("切换到上一首歌曲。")
 
     func perform() async throws -> some IntentResult {
-        try PlaybackControlRunner.run(.previous)
+        try PlaybackControlRunner.perform(.previous)
         return .result()
     }
 }
@@ -18,7 +18,7 @@ struct PlayTrackIntent: AudioPlaybackIntent {
     static var description = IntentDescription("开始播放当前歌曲。")
 
     func perform() async throws -> some IntentResult {
-        try PlaybackControlRunner.run(.play)
+        try PlaybackControlRunner.perform(.play)
         return .result()
     }
 }
@@ -28,7 +28,7 @@ struct PauseTrackIntent: AudioPlaybackIntent {
     static var description = IntentDescription("暂停当前歌曲。")
 
     func perform() async throws -> some IntentResult {
-        try PlaybackControlRunner.run(.pause)
+        try PlaybackControlRunner.perform(.pause)
         return .result()
     }
 }
@@ -38,16 +38,9 @@ struct NextTrackIntent: AudioPlaybackIntent {
     static var description = IntentDescription("切换到下一首歌曲。")
 
     func perform() async throws -> some IntentResult {
-        try PlaybackControlRunner.run(.next)
+        try PlaybackControlRunner.perform(.next)
         return .result()
     }
-}
-
-enum PlaybackCommand: String {
-    case previous
-    case play
-    case pause
-    case next
 }
 
 enum PlaybackControlRunner {
@@ -55,6 +48,14 @@ enum PlaybackControlRunner {
         subsystem: "com.marigold.NowPlayingWidget",
         category: "PlaybackControl"
     )
+
+    static func perform(_ command: PlaybackCommand) throws {
+        if Bundle.main.bundleURL.pathExtension == "appex" {
+            try enqueue(command)
+        } else {
+            try run(command)
+        }
+    }
 
     static func run(_ command: PlaybackCommand) throws {
         guard let executable = NowPlayingCLI.executableURL else {
@@ -69,5 +70,43 @@ enum PlaybackControlRunner {
         _ = try NowPlayingCLI.run(arguments: [command.rawValue])
         logger.info("nowplaying-cli \(command.rawValue, privacy: .public) finished")
         WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
+    }
+
+    private static func enqueue(_ command: PlaybackCommand) throws {
+        let request = PlaybackCommandRequest(
+            id: UUID(),
+            command: command,
+            createdAt: Date()
+        )
+        let data = try JSONEncoder.playbackCommand.encode(request)
+        var lastError: Error?
+        var wroteRequest = false
+
+        for url in NowPlayingShared.writablePlaybackCommandURLs() {
+            do {
+                try FileManager.default.createDirectory(
+                    at: url.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try data.write(to: url, options: .atomic)
+                wroteRequest = true
+            } catch {
+                lastError = error
+            }
+        }
+
+        guard wroteRequest else {
+            throw lastError ?? CocoaError(.fileWriteUnknown)
+        }
+
+        logger.info("Queued playback command \(command.rawValue, privacy: .public)")
+    }
+}
+
+private extension JSONEncoder {
+    static var playbackCommand: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
     }
 }

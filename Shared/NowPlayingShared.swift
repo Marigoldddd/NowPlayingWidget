@@ -7,6 +7,7 @@ enum NowPlayingShared {
     static let dataFileName = "nowplaying.json"
     static let artworkFileName = "cover.jpg"
     static let idleArtworkFileName = "idle-cover.png"
+    static let playbackCommandFileName = "playback-command.json"
 
     static func localSupportURL() -> URL? {
         FileManager.default.urls(
@@ -81,6 +82,16 @@ enum NowPlayingShared {
             urls.append(localSupportURL.appendingPathComponent(idleArtworkFileName))
         }
         return unique(urls)
+    }
+
+    static func writablePlaybackCommandURLs() -> [URL] {
+        writableContainerURLs().map {
+            $0.appendingPathComponent(playbackCommandFileName)
+        }
+    }
+
+    static func readablePlaybackCommandURLs() -> [URL] {
+        writablePlaybackCommandURLs()
     }
 
     private static func unique(_ urls: [URL]) -> [URL] {

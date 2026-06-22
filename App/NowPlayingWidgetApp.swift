@@ -39,6 +39,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor.start()
     }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard let command = PlaybackCommand(url: url) else { continue }
+            do {
+                try PlaybackControlRunner.run(command)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                    self?.monitor?.refresh()
+                }
+            } catch {
+                // Keep the menu-bar app quiet if the player rejects a command.
+            }
+        }
+    }
+
     @objc private func refreshNow() {
         monitor?.refresh()
     }
