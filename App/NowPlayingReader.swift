@@ -7,20 +7,17 @@ struct NowPlayingReadResult {
 }
 
 final class NowPlayingReader {
-    private let supportedBundleIDs: Set<String> = [
-        "com.netease.163music",
-        "com.apple.Music",
-        "com.spotify.client",
-    ]
-
     func read() async throws -> NowPlayingReadResult {
-        let raw = try runNowPlayingCLI()
+        try parse(runNowPlayingCLI())
+    }
+
+    func parse(_ raw: Data) throws -> NowPlayingReadResult {
         let json = try extractJSONObject(from: raw)
         let object = try JSONSerialization.jsonObject(with: json) as? [String: Any]
         let info = object ?? [:]
 
         let sourceBundleID = string(info, "kMRMediaRemoteNowPlayingInfoClientBundleIdentifier")
-        guard supportedBundleIDs.contains(sourceBundleID) else {
+        guard NowPlayingSource.displayName(for: sourceBundleID) != nil else {
             return NowPlayingReadResult(snapshot: .empty, artworkData: nil)
         }
 
@@ -29,7 +26,7 @@ final class NowPlayingReader {
         let album = string(info, "kMRMediaRemoteNowPlayingInfoAlbum")
         let playbackRate = number(info, "kMRMediaRemoteNowPlayingInfoPlaybackRate")
         let artworkBase64 = string(info, "kMRMediaRemoteNowPlayingInfoArtworkData")
-        let artworkData = Data(base64Encoded: artworkBase64)
+        let artworkData = artworkBase64.isEmpty ? nil : Data(base64Encoded: artworkBase64)
         let backgroundColor = backgroundColor(from: artworkData)
 
         let snapshot = NowPlayingSnapshot(

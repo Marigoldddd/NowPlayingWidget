@@ -6,13 +6,14 @@
 
 ### 把正在播放的音乐，放回 macOS 桌面。
 
-支持网易云音乐、Apple Music 与 Spotify。
+支持网易云音乐、QQ 音乐、Apple Music 与 Spotify。
 显示歌曲、歌手、专辑、封面、播放状态，并支持播放控制与自定义未播放页。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-green.svg)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-WidgetKit-orange.svg)](https://developer.apple.com/documentation/widgetkit)
 [![NetEase Music](https://img.shields.io/badge/NetEase%20Music-Supported-red.svg)](https://music.163.com/)
+[![QQ Music](https://img.shields.io/badge/QQ%20Music-Supported-31c27c.svg)](https://y.qq.com/)
 [![Apple Music](https://img.shields.io/badge/Apple%20Music-Supported-fa243c.svg)](https://music.apple.com/)
 [![Spotify](https://img.shields.io/badge/Spotify-Supported-1DB954.svg)](https://www.spotify.com/)
 
@@ -91,13 +92,15 @@ Release 版本已经内置 Universal `arm64 + x86_64` 的
 5. 在 **Signing & Capabilities** 中设置自己的 Team；
 6. 建议把两个 Bundle Identifier 改成自己的反向域名；
 7. 构建并运行 `NowPlayingWidget`；
-8. 播放网易云音乐、Apple Music 或 Spotify；
+8. 播放网易云音乐、QQ 音乐、Apple Music 或 Spotify；
 9. 在桌面右键进入「编辑小组件」，添加正在播放小组件。
 
-运行后，菜单栏可以进行：
+正常打开应用会显示主页面，可通过标签切换「概览」「外观」「帮助」。
+立即刷新、刷新小组件、打开数据目录和自定义未播放图片均在主页面操作。
+关闭窗口后仍会继续同步，菜单栏保留以下入口：
 
 ```text
-立即刷新 / 打开数据目录 / 退出
+打开主页面 / 退出
 ```
 
 ### 构建 GitHub Release DMG
@@ -126,11 +129,16 @@ Finder 中右键应用并选择「打开」。
 
 ```text
 com.netease.163music
+com.tencent.QQMusicMac
 com.apple.Music
 com.spotify.client
 ```
 
 当前显示哪个播放器，取决于 macOS 系统当前暴露的正在播放信息。
+QQ 音乐通过相同的系统媒体接口读取歌曲、歌手、封面和播放状态，
+播放 / 暂停 / 上一首 / 下一首也发送给系统当前的媒体播放器。
+如果 QQ 音乐未向系统提供正在播放信息，或不响应媒体命令，
+小组件无法自行补全信息或强制控制；请先检查控制中心的「正在播放」。
 
 ---
 
@@ -181,7 +189,7 @@ static let widgetBundleID = "<your-widget-bundle-id>"
 请先确认：
 
 1. 菜单栏助手正在运行；
-2. 网易云音乐、Apple Music 或 Spotify 正在播放；
+2. 网易云音乐、QQ 音乐、Apple Music 或 Spotify 正在播放；
 3. 内置的 `nowplaying-cli` 可以正常读取信息；
 4. 桌面上添加的是当前构建出来的小组件。
 
@@ -204,14 +212,18 @@ cat "$HOME/Library/Containers/<widget-bundle-id>/Data/Library/Application Suppor
 
 可以尝试：
 
-1. 点击菜单栏助手里的 `立即刷新`；
-2. 移除桌面上的旧小组件后重新添加；
-3. 重启 WidgetKit 相关缓存：
+1. 在主页面「概览」中点击 `立即刷新`，然后点击 `刷新小组件`；
+2. 如果刚覆盖安装了新版本，退出助手后执行以下命令，结束仍驻留的旧扩展，
+   然后从「应用程序」重新打开 NowPlayingWidget：
 
 ```sh
-killall chronod
-killall NotificationCenter
+killall NowPlayingWidgetExtension
 ```
+
+3. 如果仍未更新，移除桌面上的旧小组件后重新添加。
+
+覆盖安装不会立即结束已经运行的扩展进程。旧进程与新安装包的版本不一致时，
+系统可能拒绝新的刷新结果；上面的操作不会删除自定义图片或共享数据。
 
 </details>
 

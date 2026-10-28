@@ -154,16 +154,7 @@ struct NowPlayingWidgetEntryView: View {
     }
 
     private var sourceName: String {
-        switch entry.snapshot.sourceBundleID {
-        case "com.apple.Music":
-            return "Apple Music"
-        case "com.netease.163music":
-            return "网易云音乐"
-        case "com.spotify.client":
-            return "Spotify"
-        default:
-            return ""
-        }
+        NowPlayingSource.displayName(for: entry.snapshot.sourceBundleID) ?? ""
     }
 
     private var statusDot: some View {
@@ -451,7 +442,7 @@ struct NowPlayingWidgetExtension: Widget {
             NowPlayingWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("正在播放")
-        .description("显示当前网易云音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。")
+        .description("显示当前网易云音乐、QQ 音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
     }

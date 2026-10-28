@@ -1,5 +1,18 @@
 import Foundation
 
+enum NowPlayingSource {
+    static let displayNames: [String: String] = [
+        "com.netease.163music": "网易云音乐",
+        "com.tencent.QQMusicMac": "QQ 音乐",
+        "com.apple.Music": "Apple Music",
+        "com.spotify.client": "Spotify",
+    ]
+
+    static func displayName(for bundleID: String) -> String? {
+        displayNames[bundleID]
+    }
+}
+
 enum NowPlayingShared {
     static let widgetKind = "com.marigold.NowPlayingWidget.widget"
     static let widgetBundleID = "com.marigold.NowPlayingWidget.widget"

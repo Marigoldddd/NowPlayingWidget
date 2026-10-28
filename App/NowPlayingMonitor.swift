@@ -7,6 +7,8 @@ final class NowPlayingMonitor {
     private var commandTimer: Timer?
     private var lastDisplayKey: String?
     private var lastCommandID: UUID?
+    var onSnapshotRead: ((NowPlayingSnapshot) -> Void)?
+    var onRefreshError: ((Error) -> Void)?
 
     func start() {
         refresh()
@@ -23,8 +25,14 @@ final class NowPlayingMonitor {
         Task {
             do {
                 let result = try await reader.read()
+                await MainActor.run {
+                    self.onSnapshotRead?(result.snapshot)
+                }
                 try save(result)
             } catch {
+                await MainActor.run {
+                    self.onRefreshError?(error)
+                }
                 // Keep the previous widget state. The menu-bar app is intentionally quiet.
             }
         }

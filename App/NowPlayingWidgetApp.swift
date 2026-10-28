@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 import WidgetKit
 
 @main
@@ -8,14 +9,15 @@ struct NowPlayingWidgetApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView()
+            MainWindowView(model: NowPlayingAppModel.shared)
+                .frame(width: 760, height: 520)
         }
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
-    private var monitor: NowPlayingMonitor?
+    private let model = NowPlayingAppModel.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -26,17 +28,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.toolTip = "正在播放小组件"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r"))
-        menu.addItem(NSMenuItem(title: "设置...", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "打开数据目录", action: #selector(openDataFolder), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "打开主页面", action: #selector(openMainWindow), keyEquivalent: "o"))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
         statusItem.menu = menu
         self.statusItem = statusItem
 
-        let monitor = NowPlayingMonitor()
-        self.monitor = monitor
-        monitor.start()
+        model.startMonitoring()
+
+        let isDefaultLaunch = notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool ?? true
+        if isDefaultLaunch {
+            MainWindowController.shared.show()
+        }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -45,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 try PlaybackControlRunner.run(command)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                    self?.monitor?.refresh()
+                    self?.model.refreshNow()
                 }
             } catch {
                 // Keep the menu-bar app quiet if the player rejects a command.
@@ -53,11 +56,130 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func refreshNow() {
-        monitor?.refresh()
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        MainWindowController.shared.show()
+        return true
     }
 
-    @objc private func openDataFolder() {
+    @objc private func openMainWindow() {
+        MainWindowController.shared.show()
+    }
+
+    @objc private func quit() {
+        NSApp.terminate(nil)
+    }
+}
+
+final class MainWindowController {
+    static let shared = MainWindowController()
+
+    private var window: NSWindow?
+
+    private init() {}
+
+    func show() {
+        if window == nil {
+            let contentView = MainWindowView(model: NowPlayingAppModel.shared)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "Now Playing Widget"
+            window.titlebarAppearsTransparent = true
+            window.isReleasedWhenClosed = false
+            window.contentMinSize = NSSize(width: 720, height: 500)
+            window.contentView = NSHostingView(rootView: contentView)
+            window.center()
+            self.window = window
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+    }
+}
+
+final class NowPlayingAppModel: ObservableObject {
+    static let shared = NowPlayingAppModel()
+
+    @Published private(set) var snapshot: NowPlayingSnapshot
+    @Published private(set) var lastRefreshDate: Date?
+    @Published private(set) var lastErrorMessage: String?
+    @Published private(set) var hasIdleArtwork: Bool
+    @Published private(set) var message: String?
+
+    private let monitor = NowPlayingMonitor()
+    private var hasStarted = false
+
+    private init() {
+        let snapshot = Self.loadSavedSnapshot()
+        self.snapshot = snapshot
+        self.lastRefreshDate = snapshot.updatedAt.timeIntervalSince1970 > 0 ? snapshot.updatedAt : nil
+        self.hasIdleArtwork = Self.idleArtworkExists
+    }
+
+    var sourceName: String {
+        NowPlayingSource.displayName(for: snapshot.sourceBundleID)
+            ?? (snapshot.isIdle ? "等待音乐播放" : "未知播放器")
+    }
+
+    var playbackStateText: String {
+        if snapshot.isIdle { return "未检测到音乐" }
+        return snapshot.isPlaying ? "播放中" : "已暂停"
+    }
+
+    var cliStatusText: String {
+        NowPlayingCLI.executableURL == nil ? "未找到内置 nowplaying-cli" : "内置 nowplaying-cli 可用"
+    }
+
+    var cliStatusIsHealthy: Bool {
+        NowPlayingCLI.executableURL != nil
+    }
+
+    var supportFolderPath: String {
+        displayPath(NowPlayingShared.widgetSupportURL())
+    }
+
+    var artworkURL: URL? {
+        if snapshot.isIdle {
+            return Self.idleArtworkURL
+        }
+        return NowPlayingShared.readableArtworkURLs().first {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+    }
+
+    var idleArtworkURL: URL? {
+        Self.idleArtworkURL
+    }
+
+    func startMonitoring() {
+        guard !hasStarted else { return }
+        hasStarted = true
+
+        monitor.onSnapshotRead = { [weak self] snapshot in
+            self?.snapshot = snapshot
+            self?.lastRefreshDate = Date()
+            self?.lastErrorMessage = nil
+        }
+        monitor.onRefreshError = { [weak self] error in
+            self?.lastErrorMessage = error.localizedDescription
+        }
+        monitor.start()
+    }
+
+    func refreshNow() {
+        monitor.refresh()
+        message = "已请求立即刷新。"
+    }
+
+    func reloadWidgetTimelines() {
+        WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
+        message = "已请求刷新桌面小组件。"
+    }
+
+    func openDataFolder() {
         let folder = NowPlayingShared.widgetSupportURL()
         try? FileManager.default.createDirectory(
             at: folder,
@@ -66,68 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.activateFileViewerSelecting([folder])
     }
 
-    @objc private func openSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-    }
-
-    @objc private func quit() {
-        NSApp.terminate(nil)
-    }
-}
-
-struct SettingsView: View {
-    @State private var hasIdleArtwork = Self.idleArtworkExists
-    @State private var message: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("正在播放小组件")
-                .font(.title2.bold())
-            Text("保持菜单栏助手运行，它会读取 macOS 正在播放信息，并刷新桌面 WidgetKit 小组件。")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Divider()
-            VStack(alignment: .leading, spacing: 10) {
-                Text("静止状态")
-                    .font(.headline)
-                Text("未播放音乐时，左侧会显示自定义图片；未设置或删除后使用默认音乐图标。")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 10) {
-                    Button(hasIdleArtwork ? "更换图片" : "选择图片") {
-                        chooseIdleArtwork()
-                    }
-                    Button("删除自定义图片") {
-                        removeIdleArtwork()
-                    }
-                    .disabled(!hasIdleArtwork)
-                    if hasIdleArtwork {
-                        Text("已设置")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if let message {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Text("数据目录: ~/Library/Containers/\(NowPlayingShared.widgetBundleID)/Data/Library/Application Support/\(NowPlayingShared.supportFolderName)")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-        }
-        .padding(24)
-        .frame(width: 480, alignment: .leading)
-    }
-
-    private static var idleArtworkExists: Bool {
-        NowPlayingShared.readableIdleArtworkURLs().contains {
-            FileManager.default.fileExists(atPath: $0.path)
-        }
-    }
-
-    private func chooseIdleArtwork() {
+    func chooseIdleArtwork() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
@@ -144,22 +205,20 @@ struct SettingsView: View {
             try writeIdleArtwork(data)
             hasIdleArtwork = true
             message = "静止图片已更新。"
-            WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
-            WidgetCenter.shared.reloadAllTimelines()
+            reloadWidgetTimelines()
         } catch {
             message = "保存图片失败: \(error.localizedDescription)"
         }
     }
 
-    private func removeIdleArtwork() {
+    func removeIdleArtwork() {
         for container in NowPlayingShared.writableContainerURLs() {
             let url = container.appendingPathComponent(NowPlayingShared.idleArtworkFileName)
             try? FileManager.default.removeItem(at: url)
         }
         hasIdleArtwork = false
         message = "已恢复默认音乐图标。"
-        WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
-        WidgetCenter.shared.reloadAllTimelines()
+        reloadWidgetTimelines()
     }
 
     private func writeIdleArtwork(_ data: Data) throws {
@@ -168,6 +227,395 @@ struct SettingsView: View {
             let url = container.appendingPathComponent(NowPlayingShared.idleArtworkFileName)
             try data.write(to: url, options: .atomic)
         }
+    }
+
+    private static var idleArtworkExists: Bool {
+        idleArtworkURL != nil
+    }
+
+    private static var idleArtworkURL: URL? {
+        NowPlayingShared.readableIdleArtworkURLs().first {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+    }
+
+    private static func loadSavedSnapshot() -> NowPlayingSnapshot {
+        for dataURL in NowPlayingShared.readableDataURLs()
+        where FileManager.default.fileExists(atPath: dataURL.path) {
+            guard let data = try? Data(contentsOf: dataURL) else { continue }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            if let snapshot = try? decoder.decode(NowPlayingSnapshot.self, from: data) {
+                return snapshot
+            }
+        }
+        return .empty
+    }
+
+    private func displayPath(_ url: URL) -> String {
+        let home = NowPlayingShared.realUserHomeURL().standardized.path
+        let path = url.standardized.path
+        if path == home { return "~" }
+        if path.hasPrefix(home + "/") {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
+    }
+}
+
+struct MainWindowView: View {
+    @ObservedObject var model: NowPlayingAppModel
+    @State private var selectedTab = MainTab.overview
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            OverviewPage(model: model)
+                .tabItem {
+                    Label("概览", systemImage: "music.note")
+                }
+                .tag(MainTab.overview)
+
+            AppearancePage(model: model)
+                .tabItem {
+                    Label("外观", systemImage: "photo")
+                }
+                .tag(MainTab.appearance)
+
+            HelpPage(model: model)
+                .tabItem {
+                    Label("帮助", systemImage: "questionmark.circle")
+                }
+                .tag(MainTab.help)
+        }
+        .padding(22)
+        .frame(minWidth: 720, minHeight: 500)
+    }
+}
+
+private enum MainTab {
+    case overview
+    case appearance
+    case help
+}
+
+private struct OverviewPage: View {
+    @ObservedObject var model: NowPlayingAppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Now Playing Widget")
+                    .font(.largeTitle.bold())
+                Text("桌面小组件的控制台。保持这个 App 运行，小组件就会同步当前播放信息。")
+                    .foregroundStyle(.secondary)
+            }
+
+            StatusCard(model: model)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
+                ActionCard(
+                    title: "立即刷新",
+                    subtitle: "重新读取当前播放信息",
+                    systemImage: "arrow.clockwise"
+                ) {
+                    model.refreshNow()
+                }
+
+                ActionCard(
+                    title: "刷新小组件",
+                    subtitle: "请求 WidgetKit 更新显示",
+                    systemImage: "rectangle.2.swap"
+                ) {
+                    model.reloadWidgetTimelines()
+                }
+
+                ActionCard(
+                    title: "打开数据目录",
+                    subtitle: "查看共享 JSON 和封面文件",
+                    systemImage: "folder"
+                ) {
+                    model.openDataFolder()
+                }
+            }
+
+            if let message = model.message {
+                Text(message)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct StatusCard: View {
+    @ObservedObject var model: NowPlayingAppModel
+
+    var body: some View {
+        HStack(spacing: 18) {
+            ArtworkPreview(url: model.artworkURL, size: 116)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    StatusPill(
+                        text: model.playbackStateText,
+                        systemImage: model.snapshot.isPlaying ? "play.fill" : "pause.fill",
+                        isHealthy: !model.snapshot.isIdle
+                    )
+                    StatusPill(
+                        text: model.cliStatusText,
+                        systemImage: "terminal",
+                        isHealthy: model.cliStatusIsHealthy
+                    )
+                }
+
+                Text(model.snapshot.title)
+                    .font(.title2.bold())
+                    .lineLimit(2)
+
+                Text("\(model.snapshot.artist) · \(model.sourceName)")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if !model.snapshot.album.isEmpty {
+                    Text(model.snapshot.album)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: 10) {
+                    Label(lastRefreshText, systemImage: "clock")
+                    if let lastErrorMessage = model.lastErrorMessage {
+                        Label(lastErrorMessage, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private var lastRefreshText: String {
+        guard let date = model.lastRefreshDate else {
+            return "尚未刷新"
+        }
+        return "最近刷新 \(Self.formatter.localizedString(for: date, relativeTo: Date()))"
+    }
+
+    private static let formatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter
+    }()
+}
+
+private struct AppearancePage: View {
+    @ObservedObject var model: NowPlayingAppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("外观")
+                    .font(.largeTitle.bold())
+                Text("调整小组件在未播放音乐时显示的静止图片。")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(alignment: .center, spacing: 18) {
+                ArtworkPreview(url: model.idleArtworkURL, size: 128)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("静止状态图片")
+                        .font(.title3.bold())
+                    Text("未检测到音乐时，小组件会优先显示这里设置的图片；不设置则使用默认音乐图标。")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 10) {
+                        Button(model.hasIdleArtwork ? "更换图片" : "选择图片") {
+                            model.chooseIdleArtwork()
+                        }
+                        Button("删除图片") {
+                            model.removeIdleArtwork()
+                        }
+                        .disabled(!model.hasIdleArtwork)
+                    }
+
+                    Text(model.hasIdleArtwork ? "当前：已设置自定义图片" : "当前：使用默认图标")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("数据目录")
+                    .font(.headline)
+                Text(model.supportFolderPath)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                Button("在 Finder 中打开") {
+                    model.openDataFolder()
+                }
+            }
+            .padding(18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct HelpPage: View {
+    @ObservedObject var model: NowPlayingAppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("帮助")
+                    .font(.largeTitle.bold())
+                Text("第一次安装后，可以按这个流程确认小组件已经正常工作。")
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                HelpRow(number: 1, title: "保持 App 运行", detail: "菜单栏里出现音乐图标后，后台同步服务就已经启动。")
+                HelpRow(number: 2, title: "添加桌面小组件", detail: "在 macOS 的小组件面板中添加“正在播放”。")
+                HelpRow(number: 3, title: "播放音乐并刷新", detail: "支持网易云音乐、QQ 音乐、Apple Music 和 Spotify。播放后通常几秒内会同步。")
+                HelpRow(number: 4, title: "使用播放控制", detail: "小组件里的上一首、播放暂停、下一首按钮会唤起主 App 执行控制，所以主 App 需要保持运行。")
+            }
+            .padding(18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            HStack(spacing: 12) {
+                Button("立即刷新") {
+                    model.refreshNow()
+                }
+                Button("刷新小组件") {
+                    model.reloadWidgetTimelines()
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct ActionCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.title2)
+                    .frame(width: 34, height: 34)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct ArtworkPreview: View {
+    let url: URL?
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let url, let image = NSImage(contentsOf: url) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                ZStack {
+                    LinearGradient(
+                        colors: [.red.opacity(0.76), .purple.opacity(0.58), .black.opacity(0.9)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    Image(systemName: "music.note")
+                        .font(.system(size: size * 0.34, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.88))
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.18, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
+    }
+}
+
+private struct StatusPill: View {
+    let text: String
+    let systemImage: String
+    let isHealthy: Bool
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.bold())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                isHealthy ? Color.green.opacity(0.18) : Color.secondary.opacity(0.14),
+                in: Capsule()
+            )
+            .foregroundStyle(isHealthy ? .green : .secondary)
+    }
+}
+
+private struct HelpRow: View {
+    let number: Int
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(Color.accentColor, in: Circle())
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                Text(detail)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+private extension NowPlayingSnapshot {
+    var isIdle: Bool {
+        sourceBundleID.isEmpty && title == NowPlayingSnapshot.empty.title && artist == NowPlayingSnapshot.empty.artist
     }
 }
 
