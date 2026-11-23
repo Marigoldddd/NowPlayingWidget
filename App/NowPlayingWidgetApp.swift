@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SwiftUI
 import UniformTypeIdentifiers
 import WidgetKit
@@ -11,6 +12,63 @@ struct NowPlayingWidgetApp: App {
         Settings {
             MainWindowView(model: NowPlayingAppModel.shared)
                 .frame(width: 760, height: 520)
+                .onOpenURL { url in
+                    DeepLinkRouter.handle(url, model: NowPlayingAppModel.shared)
+                }
+        }
+    }
+}
+
+private enum DeepLinkRouter {
+    private static let logger = Logger(subsystem: "com.marigold.NowPlayingWidget", category: "DeepLink")
+    private static var lastURL: String?
+    private static var lastDate: Date = .distantPast
+
+    static func handle(_ url: URL, model: NowPlayingAppModel) {
+        let now = Date()
+        if lastURL == url.absoluteString, now.timeIntervalSince(lastDate) < 0.2 {
+            return
+        }
+        lastURL = url.absoluteString
+        lastDate = now
+
+        guard let deepLink = WidgetDeepLink(url: url) else {
+            logger.warning("Ignored unknown URL: \(url.absoluteString, privacy: .public)")
+            return
+        }
+
+        switch deepLink {
+        case let .playback(command):
+            do {
+                try PlaybackControlRunner.run(command)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    model.refreshAfterPlaybackControl()
+                }
+            } catch {
+                logger.error("Playback command failed: \(error.localizedDescription, privacy: .public)")
+            }
+        case let .openPlayer(bundleID):
+            openPlayerApplication(bundleID: bundleID)
+        }
+    }
+
+    private static func openPlayerApplication(bundleID: String) {
+        guard NowPlayingSource.displayName(for: bundleID) != nil,
+              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            logger.error("Unable to resolve player bundleID: \(bundleID, privacy: .public)")
+            return
+        }
+
+        logger.info("Opening player \(bundleID, privacy: .public) at \(appURL.path, privacy: .public)")
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { _, error in
+            if let error {
+                logger.error("openApplication failed: \(error.localizedDescription, privacy: .public)")
+                DispatchQueue.main.async {
+                    NSWorkspace.shared.open(appURL)
+                }
+            }
         }
     }
 }
@@ -44,15 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            guard let command = PlaybackCommand(url: url) else { continue }
-            do {
-                try PlaybackControlRunner.run(command)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                    self?.model.refreshAfterPlaybackControl()
-                }
-            } catch {
-                // Keep the menu-bar app quiet if the player rejects a command.
-            }
+            DeepLinkRouter.handle(url, model: model)
         }
     }
 
@@ -107,7 +157,8 @@ final class NowPlayingAppModel: ObservableObject {
     @Published private(set) var lastRefreshDate: Date?
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var hasIdleArtwork: Bool
-    @Published private(set) var selectedTheme: WidgetTheme
+    @Published private(set) var appearance: WidgetAppearance
+    @Published private(set) var artworkRevision = 0
     @Published private(set) var message: String?
     @Published private(set) var widgetSyncReport: WidgetSyncReport?
 
@@ -119,15 +170,64 @@ final class NowPlayingAppModel: ObservableObject {
         self.snapshot = snapshot
         self.lastRefreshDate = snapshot.updatedAt.timeIntervalSince1970 > 0 ? snapshot.updatedAt : nil
         self.hasIdleArtwork = Self.idleArtworkExists
-        self.selectedTheme = NowPlayingShared.loadAppearance().theme
+        self.appearance = NowPlayingShared.loadAppearance()
     }
 
-    func selectTheme(_ theme: WidgetTheme) {
-        guard theme != selectedTheme else { return }
+    var isPerSizeThemeEnabled: Bool {
+        appearance.usesPerSizeThemes
+    }
+
+    func theme(for sizeClass: WidgetSizeClass?) -> WidgetTheme {
+        if let sizeClass, appearance.usesPerSizeThemes {
+            return appearance.theme(for: sizeClass)
+        }
+        return appearance.theme
+    }
+
+    func setPerSizeThemeEnabled(_ enabled: Bool) {
+        var next = appearance
+        if enabled {
+            let base = appearance.theme
+            next.smallTheme = appearance.smallTheme ?? base
+            next.mediumTheme = appearance.mediumTheme ?? base
+            next.largeTheme = appearance.largeTheme ?? base
+        } else {
+            next.smallTheme = nil
+            next.mediumTheme = nil
+            next.largeTheme = nil
+        }
+        saveAppearance(
+            next,
+            statusMessage: enabled
+                ? "已开启按尺寸设置皮肤，可分别选择小号、中号、大号皮肤。"
+                : "已恢复统一皮肤（\(next.theme.displayName)）。"
+        )
+    }
+
+    func selectTheme(_ theme: WidgetTheme, for sizeClass: WidgetSizeClass? = nil) {
+        var next = appearance
+        if let sizeClass, appearance.usesPerSizeThemes {
+            guard appearance.theme(for: sizeClass) != theme else { return }
+            next.setTheme(theme, for: sizeClass)
+            saveAppearance(
+                next,
+                statusMessage: "已将「\(sizeClass.displayName)」小组件切换为「\(theme.displayName)」。"
+            )
+        } else {
+            guard appearance.theme != theme || appearance.usesPerSizeThemes else { return }
+            next = WidgetAppearance(theme: theme)
+            saveAppearance(
+                next,
+                statusMessage: "已切换为「\(theme.displayName)」皮肤，正在请求刷新小组件。"
+            )
+        }
+    }
+
+    private func saveAppearance(_ next: WidgetAppearance, statusMessage: String) {
         do {
-            try NowPlayingShared.saveAppearance(WidgetAppearance(theme: theme))
-            selectedTheme = theme
-            message = "已切换为「\(theme.displayName)」皮肤，正在请求刷新小组件。"
+            try NowPlayingShared.saveAppearance(next)
+            appearance = next
+            message = statusMessage
             WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
@@ -180,6 +280,9 @@ final class NowPlayingAppModel: ObservableObject {
             self?.lastRefreshDate = Date()
             self?.lastErrorMessage = nil
         }
+        monitor.onSnapshotWritten = { [weak self] in
+            self?.artworkRevision += 1
+        }
         monitor.onRefreshError = { [weak self] detail in
             self?.lastErrorMessage = detail
         }
@@ -223,6 +326,7 @@ final class NowPlayingAppModel: ObservableObject {
         do {
             try writeIdleArtwork(data)
             hasIdleArtwork = true
+            artworkRevision += 1
             message = "静止图片已更新。"
             WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
         } catch {
@@ -236,6 +340,7 @@ final class NowPlayingAppModel: ObservableObject {
             try? FileManager.default.removeItem(at: url)
         }
         hasIdleArtwork = false
+        artworkRevision += 1
         message = "已恢复默认音乐图标。"
         WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
     }
@@ -430,6 +535,7 @@ private struct StatusCard: View {
     var body: some View {
         HStack(spacing: 18) {
             ArtworkPreview(url: model.artworkURL, size: 116)
+                .id(model.artworkRevision)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
@@ -494,6 +600,7 @@ private struct StatusCard: View {
 
 private struct AppearancePage: View {
     @ObservedObject var model: NowPlayingAppModel
+    @State private var selectedSizeClass: WidgetSizeClass = .medium
 
     var body: some View {
         ScrollView {
@@ -506,26 +613,61 @@ private struct AppearancePage: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("小组件皮肤")
-                        .font(.title3.bold())
+                    HStack {
+                        Text("小组件皮肤")
+                            .font(.title3.bold())
+                        Spacer(minLength: 0)
+                        Toggle(
+                            "按尺寸分别设置",
+                            isOn: Binding(
+                                get: { model.isPerSizeThemeEnabled },
+                                set: { model.setPerSizeThemeEnabled($0) }
+                            )
+                        )
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                    }
+
+                    if model.isPerSizeThemeEnabled {
+                        Picker("小组件尺寸", selection: $selectedSizeClass) {
+                            ForEach(WidgetSizeClass.allCases) { sizeClass in
+                                Text("\(sizeClass.displayName)（\(model.theme(for: sizeClass).displayName)）")
+                                    .tag(sizeClass)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    let activeSize: WidgetSizeClass? = model.isPerSizeThemeEnabled ? selectedSizeClass : nil
+                    let currentTheme = model.theme(for: activeSize)
 
                     HStack(spacing: 12) {
                         ForEach(WidgetTheme.allCases) { theme in
                             ThemeOptionCard(
                                 theme: theme,
-                                isSelected: model.selectedTheme == theme,
+                                isSelected: currentTheme == theme,
                                 artworkURL: model.artworkURL
                             ) {
-                                model.selectTheme(theme)
+                                model.selectTheme(theme, for: activeSize)
                             }
+                            .id("\(theme.rawValue)-\(model.artworkRevision)")
                         }
                     }
+
+                    Text(
+                        model.isPerSizeThemeEnabled
+                            ? "已开启按尺寸设置：可分别为桌面上的小号、中号、大号小组件指定不同皮肤。"
+                            : "当前所有尺寸共用同一套皮肤；开启右上角「按尺寸分别设置」可给小 / 中 / 大号单独选皮肤。"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 .padding(18)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 HStack(alignment: .center, spacing: 18) {
                     ArtworkPreview(url: model.idleArtworkURL, size: 128)
+                        .id(model.artworkRevision)
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("静止状态图片")

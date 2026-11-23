@@ -32,6 +32,7 @@
 		100000000000000000000024 /* PlaybackCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* PlaybackCommand.swift */; };
 		100000000000000000000025 /* WidgetSyncPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* WidgetSyncPipeline.swift */; };
 		100000000000000000000026 /* HighResArtworkResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000023 /* HighResArtworkResolver.swift */; };
+		100000000000000000000027 /* LyricResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000024 /* LyricResolver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +82,7 @@
 		200000000000000000000021 /* PlaybackCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackCommand.swift; sourceTree = "<group>"; };
 		200000000000000000000022 /* WidgetSyncPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSyncPipeline.swift; sourceTree = "<group>"; };
 		200000000000000000000023 /* HighResArtworkResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighResArtworkResolver.swift; sourceTree = "<group>"; };
+		200000000000000000000024 /* LyricResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricResolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 				200000000000000000000002 /* NowPlayingMonitor.swift */,
 				200000000000000000000022 /* WidgetSyncPipeline.swift */,
 				200000000000000000000023 /* HighResArtworkResolver.swift */,
+				200000000000000000000024 /* LyricResolver.swift */,
 				200000000000000000000003 /* NowPlayingReader.swift */,
 				200000000000000000000018 /* PlaybackAppShortcuts.swift */,
 				200000000000000000000006 /* Info.plist */,
@@ -323,6 +326,7 @@
 				100000000000000000000002 /* NowPlayingMonitor.swift in Sources */,
 				100000000000000000000025 /* WidgetSyncPipeline.swift in Sources */,
 				100000000000000000000026 /* HighResArtworkResolver.swift in Sources */,
+				100000000000000000000027 /* LyricResolver.swift in Sources */,
 				100000000000000000000003 /* NowPlayingReader.swift in Sources */,
 				100000000000000000000004 /* NowPlayingShared.swift in Sources */,
 				100000000000000000000019 /* NowPlayingCLI.swift in Sources */,
@@ -469,7 +473,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/NowPlayingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -477,7 +481,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.13;
+				MARKETING_VERSION = 1.0.17;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget;
 				PRODUCT_NAME = NowPlayingWidget;
 				SWIFT_VERSION = 5.0;
@@ -491,7 +495,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/NowPlayingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -499,7 +503,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.13;
+				MARKETING_VERSION = 1.0.17;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget;
 				PRODUCT_NAME = NowPlayingWidget;
 				SWIFT_VERSION = 5.0;
@@ -513,7 +517,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Widget/NowPlayingWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -521,7 +525,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.13;
+				MARKETING_VERSION = 1.0.17;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget.widget;
 				PRODUCT_NAME = NowPlayingWidgetExtension;
 				SKIP_INSTALL = YES;
@@ -537,7 +541,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Widget/NowPlayingWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -545,7 +549,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.13;
+				MARKETING_VERSION = 1.0.17;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marigold.NowPlayingWidget.widget;
 				PRODUCT_NAME = NowPlayingWidgetExtension;
 				SKIP_INSTALL = YES;

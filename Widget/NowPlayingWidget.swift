@@ -7,7 +7,17 @@ struct MusicEntry: TimelineEntry {
     let snapshot: NowPlayingSnapshot
     let artworkURL: URL?
     let backgroundColor: WidgetBackgroundColor
-    let theme: WidgetTheme
+    let appearance: WidgetAppearance
+
+    func theme(for family: WidgetFamily) -> WidgetTheme {
+        let sizeClass: WidgetSizeClass
+        switch family {
+        case .systemSmall: sizeClass = .small
+        case .systemLarge: sizeClass = .large
+        default: sizeClass = .medium
+        }
+        return appearance.theme(for: sizeClass)
+    }
 }
 
 struct MusicProvider: TimelineProvider {
@@ -17,7 +27,7 @@ struct MusicProvider: TimelineProvider {
             snapshot: .empty,
             artworkURL: nil,
             backgroundColor: .defaultIdle,
-            theme: NowPlayingShared.loadAppearance().theme
+            appearance: NowPlayingShared.loadAppearance()
         )
     }
 
@@ -31,7 +41,7 @@ struct MusicProvider: TimelineProvider {
     }
 
     private func loadEntry() -> MusicEntry {
-        let theme = NowPlayingShared.loadAppearance().theme
+        let appearance = NowPlayingShared.loadAppearance()
         let dataURLs = NowPlayingShared.readableDataURLs()
 
         for dataURL in dataURLs where FileManager.default.fileExists(atPath: dataURL.path) {
@@ -66,7 +76,7 @@ struct MusicProvider: TimelineProvider {
                 snapshot: snapshot,
                 artworkURL: artworkURL,
                 backgroundColor: backgroundColor,
-                theme: theme
+                appearance: appearance
             )
         }
 
@@ -75,7 +85,7 @@ struct MusicProvider: TimelineProvider {
             snapshot: .empty,
             artworkURL: nil,
             backgroundColor: .defaultIdle,
-            theme: theme
+            appearance: appearance
         )
     }
 }
@@ -84,25 +94,41 @@ struct NowPlayingWidgetEntryView: View {
     let entry: MusicEntry
     @Environment(\.widgetFamily) private var family
 
+    private var activeTheme: WidgetTheme {
+        entry.theme(for: family)
+    }
+
     var body: some View {
         Group {
-            switch (entry.theme, family) {
+            switch (activeTheme, family) {
             case (.classic, .systemSmall):
                 smallLayout
+            case (.classic, .systemLarge):
+                largeLayout
             case (.classic, _):
                 mediumLayout
             case (.vinyl, .systemSmall):
                 vinylSmallLayout
+            case (.vinyl, .systemLarge):
+                vinylLargeLayout
             case (.vinyl, _):
                 vinylMediumLayout
             case (.poster, .systemSmall):
                 posterSmallLayout
+            case (.poster, .systemLarge):
+                posterLargeLayout
             case (.poster, _):
                 posterMediumLayout
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .modifier(WidgetBackground(entry: entry))
+        .modifier(WidgetBackground(entry: entry, theme: activeTheme))
+        .widgetURL(openPlayerURL)
+    }
+
+    private var openPlayerURL: URL? {
+        guard !entry.snapshot.isIdle else { return nil }
+        return WidgetDeepLink.openPlayerURL(bundleID: entry.snapshot.sourceBundleID)
     }
 
     private var mediumLayout: some View {
@@ -292,6 +318,200 @@ struct NowPlayingWidgetEntryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+
+    private var largeLayout: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 16) {
+                AnimatedArtworkView(entry: entry, size: 108)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    statusView
+
+                    Text(entry.snapshot.title)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.76)
+
+                    Text(artistAlbumText)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.82))
+                        .lineLimit(1)
+
+                    if !entry.snapshot.isIdle {
+                        controlsView
+                            .padding(.top, 4)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Divider()
+                .overlay(.white.opacity(0.14))
+
+            lyricPosterSection
+        }
+        .padding(18)
+    }
+
+    private var vinylLargeLayout: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 16) {
+                VinylDiscView(
+                    url: entry.artworkURL,
+                    size: 112,
+                    isPlaying: entry.snapshot.isPlaying
+                )
+
+                VStack(alignment: .leading, spacing: 7) {
+                    statusView
+
+                    Text(entry.snapshot.title)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.76)
+
+                    Text(artistAlbumText)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.74))
+                        .lineLimit(1)
+
+                    if !entry.snapshot.isIdle {
+                        controlsView
+                            .padding(.top, 4)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Divider()
+                .overlay(.white.opacity(0.12))
+
+            lyricPosterSection
+        }
+        .padding(18)
+    }
+
+    private var posterLargeLayout: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                statusDot
+                Text(statusText)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.42), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(.white.opacity(0.18), lineWidth: 0.8)
+            )
+
+            Spacer(minLength: 0)
+
+            lyricPosterSection
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.snapshot.title)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.76)
+                    .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
+
+                Text(artistAlbumText)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.84))
+                    .lineLimit(1)
+                    .shadow(color: .black.opacity(0.55), radius: 4, y: 1)
+
+                if !entry.snapshot.isIdle {
+                    controlsView
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+    }
+
+    private var lyricPosterSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if entry.snapshot.isIdle {
+                Spacer(minLength: 0)
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text("播放音乐后将在此展示歌词海报")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.70))
+                }
+                Spacer(minLength: 0)
+            } else if entry.snapshot.lyricLines.isEmpty {
+                Spacer(minLength: 0)
+                HStack(spacing: 8) {
+                    Image(systemName: "music.quarternote.3")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text("纯音乐 · 静静聆听")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.74))
+                }
+                Spacer(minLength: 0)
+            } else if !entry.snapshot.lyricTranslations.isEmpty {
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.45))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(entry.snapshot.lyricLines.prefix(3).enumerated()), id: \.offset) { index, line in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(line)
+                                .font(.system(size: 14.5, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.95))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.84)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+
+                            if index < entry.snapshot.lyricTranslations.count {
+                                Text(entry.snapshot.lyricTranslations[index])
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.68))
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.84)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .shadow(color: .black.opacity(0.30), radius: 2, y: 1)
+                            }
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            } else {
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.45))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(Array(entry.snapshot.lyricLines.enumerated()), id: \.offset) { index, line in
+                        Text(line)
+                            .font(.system(size: index < 2 ? 14.5 : 13.5, weight: index < 2 ? .semibold : .medium))
+                            .foregroundStyle(.white.opacity(index < 2 ? 0.94 : 0.72))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var artistAlbumText: String {
@@ -803,10 +1023,11 @@ struct PosterBackground: View {
 
 struct WidgetBackground: ViewModifier {
     let entry: MusicEntry
+    let theme: WidgetTheme
 
     @ViewBuilder
     private var backgroundView: some View {
-        switch entry.theme {
+        switch theme {
         case .classic:
             CardBackground(backgroundColor: entry.backgroundColor)
         case .vinyl:
@@ -838,7 +1059,7 @@ struct NowPlayingWidgetExtension: Widget {
         }
         .configurationDisplayName("正在播放")
         .description("显示当前网易云音乐、QQ 音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
 }

@@ -90,7 +90,91 @@ struct NowPlayingReaderTests {
             let decoded = try JSONDecoder().decode(WidgetAppearance.self, from: encoded)
             precondition(decoded.theme == theme)
         }
-        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes")
+        var perSize = WidgetAppearance(theme: .classic)
+        perSize.setTheme(.vinyl, for: .small)
+        perSize.setTheme(.poster, for: .large)
+        let perSizeDecoded = try JSONDecoder().decode(WidgetAppearance.self, from: try JSONEncoder().encode(perSize))
+        precondition(perSizeDecoded.theme(for: .small) == .vinyl)
+        precondition(perSizeDecoded.theme(for: .medium) == .classic)
+        precondition(perSizeDecoded.theme(for: .large) == .poster)
+        precondition(WidgetDeepLink(url: PlaybackCommand.next.url) == .playback(.next))
+        if let openURL = WidgetDeepLink.openPlayerURL(bundleID: "com.netease.163music") {
+            precondition(WidgetDeepLink(url: openURL) == .openPlayer(bundleID: "com.netease.163music"))
+        } else {
+            preconditionFailure("Expected valid openPlayerURL")
+        }
+        precondition(WidgetDeepLink.openPlayerURL(bundleID: "") == nil)
+
+        var cliCallCount = 0
+        let idleReader = NowPlayingReader(
+            hasRunningPlayer: { false },
+            runCLI: {
+                cliCallCount += 1
+                return Data()
+            }
+        )
+        let idleRead = try idleReader.read()
+        precondition(idleRead.snapshot == .empty)
+        precondition(idleRead.artworkData == nil)
+        precondition(cliCallCount == 0)
+
+        let lrcSample = """
+        [00:00.000] 作词 : ひとみ
+        [00:00.224] 作曲 : ひとみ
+        [00:00.449] 君が僕に見せてくれた
+        [00:05.713] 世界はとても綺麗だったな
+        [00:11.460]
+        [00:22.822] 書架の隙間に住まう
+        [00:25.417] 一輪の花は
+        """
+        let snippet = LyricResolver.extractSnippet(fromLRC: lrcSample, limit: 5)
+        precondition(snippet.lines == [
+            "君が僕に見せてくれた",
+            "世界はとても綺麗だったな",
+            "書架の隙間に住まう",
+            "一輪の花は",
+        ])
+        precondition(snippet.translations.isEmpty)
+
+        let tlyricSample = """
+        [by:Test]
+        [00:00.449]是你让我看到
+        [00:05.713]这世界有多么美丽
+        [00:22.822]在栖息于书架缝隙中的
+        [00:25.417]一朵花
+        """
+        let bilingual = LyricResolver.extractSnippet(fromLRC: lrcSample, tlyric: tlyricSample)
+        precondition(bilingual.lines == [
+            "君が僕に見せてくれた",
+            "世界はとても綺麗だったな",
+            "書架の隙間に住まう",
+        ])
+        precondition(bilingual.translations == [
+            "是你让我看到",
+            "这世界有多么美丽",
+            "在栖息于书架缝隙中的",
+        ])
+
+        let chorusLRC = """
+        [00:01.000] Yeah
+        [00:05.000] First intro line here
+        [00:10.000] Second intro line here
+        [00:20.000] Shining bright like a star tonight
+        [00:25.000] Dancing under the neon light
+        [00:30.000] Never gonna let you fade away
+        [00:40.000] Verse two line one here
+        [00:45.000] Verse two line two here
+        [00:55.000] Shining bright like a star tonight
+        [01:00.000] Dancing under the neon light
+        [01:05.000] Never gonna let you fade away
+        """
+        let chorusSnippet = LyricResolver.extractSnippet(fromLRC: chorusLRC, limit: 3)
+        precondition(chorusSnippet.lines == [
+            "Shining bright like a star tonight",
+            "Dancing under the neon light",
+            "Never gonna let you fade away",
+        ])
+        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes, deep links, zero-process idle, bilingual lyrics, chorus scoring")
         try WidgetSyncPipelineTests.run()
     }
 }

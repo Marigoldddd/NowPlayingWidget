@@ -45,10 +45,49 @@ enum WidgetTheme: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum WidgetSizeClass: String, Codable, CaseIterable, Identifiable {
+    case small
+    case medium
+    case large
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .small: return "小号"
+        case .medium: return "中号"
+        case .large: return "大号"
+        }
+    }
+}
+
 struct WidgetAppearance: Codable, Equatable {
     var theme: WidgetTheme
+    var smallTheme: WidgetTheme?
+    var mediumTheme: WidgetTheme?
+    var largeTheme: WidgetTheme?
 
     static let `default` = WidgetAppearance(theme: .classic)
+
+    var usesPerSizeThemes: Bool {
+        smallTheme != nil || mediumTheme != nil || largeTheme != nil
+    }
+
+    func theme(for sizeClass: WidgetSizeClass) -> WidgetTheme {
+        switch sizeClass {
+        case .small: return smallTheme ?? theme
+        case .medium: return mediumTheme ?? theme
+        case .large: return largeTheme ?? theme
+        }
+    }
+
+    mutating func setTheme(_ newTheme: WidgetTheme, for sizeClass: WidgetSizeClass) {
+        switch sizeClass {
+        case .small: smallTheme = newTheme
+        case .medium: mediumTheme = newTheme
+        case .large: largeTheme = newTheme
+        }
+    }
 }
 
 enum NowPlayingShared {
@@ -190,6 +229,8 @@ struct NowPlayingSnapshot: Codable, Equatable {
     var backgroundRed: Double
     var backgroundGreen: Double
     var backgroundBlue: Double
+    var lyricLines: [String]
+    var lyricTranslations: [String]
 
     static let empty = NowPlayingSnapshot(
         title: "风声暂代旋律",
@@ -201,7 +242,9 @@ struct NowPlayingSnapshot: Codable, Equatable {
         hasArtwork: false,
         backgroundRed: 0.64,
         backgroundGreen: 0.10,
-        backgroundBlue: 0.13
+        backgroundBlue: 0.13,
+        lyricLines: [],
+        lyricTranslations: []
     )
 
     init(
@@ -214,7 +257,9 @@ struct NowPlayingSnapshot: Codable, Equatable {
         hasArtwork: Bool,
         backgroundRed: Double = 0.64,
         backgroundGreen: Double = 0.10,
-        backgroundBlue: Double = 0.13
+        backgroundBlue: Double = 0.13,
+        lyricLines: [String] = [],
+        lyricTranslations: [String] = []
     ) {
         self.title = title
         self.artist = artist
@@ -226,6 +271,8 @@ struct NowPlayingSnapshot: Codable, Equatable {
         self.backgroundRed = backgroundRed
         self.backgroundGreen = backgroundGreen
         self.backgroundBlue = backgroundBlue
+        self.lyricLines = lyricLines
+        self.lyricTranslations = lyricTranslations
     }
 
     init(from decoder: Decoder) throws {
@@ -240,5 +287,7 @@ struct NowPlayingSnapshot: Codable, Equatable {
         backgroundRed = try container.decodeIfPresent(Double.self, forKey: .backgroundRed) ?? 0.64
         backgroundGreen = try container.decodeIfPresent(Double.self, forKey: .backgroundGreen) ?? 0.10
         backgroundBlue = try container.decodeIfPresent(Double.self, forKey: .backgroundBlue) ?? 0.13
+        lyricLines = try container.decodeIfPresent([String].self, forKey: .lyricLines) ?? []
+        lyricTranslations = try container.decodeIfPresent([String].self, forKey: .lyricTranslations) ?? []
     }
 }

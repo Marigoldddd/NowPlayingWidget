@@ -14,18 +14,39 @@ final class NowPlayingReader {
     }
 
     private let artworkResolver: HighResArtworkResolver?
+    private let lyricResolver: LyricResolver?
+    private let hasRunningPlayer: () -> Bool
+    private let runCLI: () throws -> Data
     private let cacheLock = NSLock()
     private var cachedArtwork: CachedArtwork?
     private var cachedHighResKey: String?
     private var cachedHighResColor: (red: Double, green: Double, blue: Double)?
     private(set) var backgroundColorComputeCount = 0
 
-    init(artworkResolver: HighResArtworkResolver? = nil) {
+    init(
+        artworkResolver: HighResArtworkResolver? = nil,
+        lyricResolver: LyricResolver? = nil,
+        hasRunningPlayer: @escaping () -> Bool = NowPlayingReader.isAnySupportedPlayerRunning,
+        runCLI: @escaping () throws -> Data = { try NowPlayingCLI.run(arguments: ["get-raw"]) }
+    ) {
         self.artworkResolver = artworkResolver
+        self.lyricResolver = lyricResolver
+        self.hasRunningPlayer = hasRunningPlayer
+        self.runCLI = runCLI
+    }
+
+    static func isAnySupportedPlayerRunning() -> Bool {
+        NSWorkspace.shared.runningApplications.contains { app in
+            guard let bundleID = app.bundleIdentifier else { return false }
+            return NowPlayingSource.displayName(for: bundleID) != nil
+        }
     }
 
     func read() throws -> NowPlayingReadResult {
-        try parse(runNowPlayingCLI())
+        guard hasRunningPlayer() else {
+            return NowPlayingReadResult(snapshot: .empty, artworkData: nil)
+        }
+        return try parse(runCLI())
     }
 
     func parse(_ raw: Data) throws -> NowPlayingReadResult {
@@ -48,6 +69,7 @@ final class NowPlayingReader {
         var (artworkData, backgroundColor) = resolveArtwork(from: artworkBase64)
 
         if let highResData = artworkResolver?.resolveIfNeeded(
+            sourceBundleID: sourceBundleID,
             title: resolvedTitle,
             artist: resolvedArtist,
             album: album,
@@ -60,6 +82,13 @@ final class NowPlayingReader {
             )
         }
 
+        let lyricSnippet = lyricResolver?.resolveIfNeeded(
+            sourceBundleID: sourceBundleID,
+            title: resolvedTitle,
+            artist: resolvedArtist,
+            album: album
+        ) ?? .empty
+
         let snapshot = NowPlayingSnapshot(
             title: resolvedTitle,
             artist: resolvedArtist,
@@ -70,7 +99,9 @@ final class NowPlayingReader {
             hasArtwork: artworkData != nil,
             backgroundRed: backgroundColor.red,
             backgroundGreen: backgroundColor.green,
-            backgroundBlue: backgroundColor.blue
+            backgroundBlue: backgroundColor.blue,
+            lyricLines: lyricSnippet.lines,
+            lyricTranslations: lyricSnippet.translations
         )
 
         return NowPlayingReadResult(snapshot: snapshot, artworkData: artworkData)
