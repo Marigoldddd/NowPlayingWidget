@@ -69,6 +69,18 @@
       <sub>未播放状态</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/image5_vinyl.jpg" alt="黑胶唱片皮肤预览" width="420">
+      <br>
+      <sub>黑胶唱片皮肤</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/image6_poster.jpg" alt="全屏海报皮肤预览" width="420">
+      <br>
+      <sub>全屏海报皮肤</sub>
+    </td>
+  </tr>
 </table>
 
 ---
