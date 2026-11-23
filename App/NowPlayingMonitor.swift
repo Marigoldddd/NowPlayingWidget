@@ -2,80 +2,111 @@ import Foundation
 import WidgetKit
 
 final class NowPlayingMonitor {
-    private let reader = NowPlayingReader()
+    private let syncQueue = DispatchQueue(label: "com.marigold.NowPlayingWidget.sync", qos: .utility)
+    private let artworkResolver = HighResArtworkResolver()
+    private let reader: NowPlayingReader
+    private let pipeline: WidgetSyncPipeline
     private var refreshTimer: Timer?
-    private var commandTimer: Timer?
-    private var lastDisplayKey: String?
+    private var commandDirectorySources: [DispatchSourceFileSystemObject] = []
+    private var pendingCommandWorkItem: DispatchWorkItem?
+    private var pendingSyncs = 0
     private var lastCommandID: UUID?
     var onSnapshotRead: ((NowPlayingSnapshot) -> Void)?
-    var onRefreshError: ((Error) -> Void)?
+    var onRefreshError: ((String) -> Void)?
+
+    init() {
+        let reader = NowPlayingReader(artworkResolver: artworkResolver)
+        self.reader = reader
+        self.pipeline = WidgetSyncPipeline(
+            read: reader.read,
+            containers: NowPlayingShared.writableContainerURLs,
+            requestReload: { WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind) }
+        )
+        artworkResolver.onResolved = { [weak self] in
+            DispatchQueue.main.async {
+                self?.refresh()
+            }
+        }
+    }
+
+    deinit {
+        refreshTimer?.invalidate()
+        pendingCommandWorkItem?.cancel()
+        commandDirectorySources.forEach { $0.cancel() }
+    }
 
     func start() {
         refresh()
         processPlaybackCommand()
+        startWatchingPlaybackCommands()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             self?.refresh()
-        }
-        commandTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.processPlaybackCommand()
         }
     }
 
     func refresh() {
-        Task {
-            do {
-                let result = try await reader.read()
-                await MainActor.run {
-                    self.onSnapshotRead?(result.snapshot)
+        guard pendingSyncs == 0 else { return }
+        enqueueSync(forceWrite: false)
+    }
+
+    func syncWidget(onEvent: @escaping (WidgetSyncEvent) -> Void) {
+        enqueueSync(forceWrite: true, onEvent: onEvent)
+    }
+
+    private func enqueueSync(
+        forceWrite: Bool,
+        onEvent: ((WidgetSyncEvent) -> Void)? = nil
+    ) {
+        pendingSyncs += 1
+        syncQueue.async { [self] in
+            pipeline.sync(forceWrite: forceWrite) { event in
+                DispatchQueue.main.async { [self] in
+                    switch event {
+                    case let .read(snapshot):
+                        onSnapshotRead?(snapshot)
+                    case let .readFailed(detail), let .writeFailed(detail):
+                        onRefreshError?(detail)
+                    case .written, .reloadRequested:
+                        break
+                    }
+                    onEvent?(event)
                 }
-                try save(result)
-            } catch {
-                await MainActor.run {
-                    self.onRefreshError?(error)
-                }
-                // Keep the previous widget state. The menu-bar app is intentionally quiet.
             }
+            DispatchQueue.main.async { [self] in pendingSyncs -= 1 }
         }
     }
 
-    private func save(_ result: NowPlayingReadResult) throws {
-        let displayKey = [
-            result.snapshot.title,
-            result.snapshot.artist,
-            result.snapshot.album,
-            result.snapshot.isPlaying.description,
-            result.snapshot.sourceBundleID,
-            result.snapshot.hasArtwork.description,
-            result.snapshot.backgroundRed.description,
-            result.snapshot.backgroundGreen.description,
-            result.snapshot.backgroundBlue.description,
-        ].joined(separator: "\u{1f}")
+    private func startWatchingPlaybackCommands() {
+        guard commandDirectorySources.isEmpty else { return }
 
-        guard displayKey != lastDisplayKey else { return }
-        let encoded = try JSONEncoder.widget.encode(result.snapshot)
+        for directory in NowPlayingShared.writableContainerURLs() {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let fd = open(directory.path, O_EVTONLY)
+            guard fd >= 0 else { continue }
 
-        for container in NowPlayingShared.writableContainerURLs() {
-            try FileManager.default.createDirectory(
-                at: container,
-                withIntermediateDirectories: true
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd,
+                eventMask: .write,
+                queue: .main
             )
-
-            let dataURL = container.appendingPathComponent(NowPlayingShared.dataFileName)
-            let artworkURL = container.appendingPathComponent(NowPlayingShared.artworkFileName)
-
-            if let artworkData = result.artworkData {
-                try artworkData.write(to: artworkURL, options: .atomic)
-            } else if FileManager.default.fileExists(atPath: artworkURL.path) {
-                try? FileManager.default.removeItem(at: artworkURL)
+            source.setEventHandler { [weak self] in
+                self?.schedulePlaybackCommandCheck()
             }
-
-            try encoded.write(to: dataURL, options: .atomic)
+            source.setCancelHandler {
+                close(fd)
+            }
+            source.resume()
+            commandDirectorySources.append(source)
         }
+    }
 
-        lastDisplayKey = displayKey
-
-        WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
-        WidgetCenter.shared.reloadAllTimelines()
+    private func schedulePlaybackCommandCheck() {
+        pendingCommandWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.processPlaybackCommand()
+        }
+        pendingCommandWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: workItem)
     }
 
     private func processPlaybackCommand() {
@@ -108,14 +139,6 @@ final class NowPlayingMonitor {
             }
             break
         }
-    }
-}
-
-private extension JSONEncoder {
-    static var widget: JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
     }
 }
 

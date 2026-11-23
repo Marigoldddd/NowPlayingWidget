@@ -13,6 +13,44 @@ enum NowPlayingSource {
     }
 }
 
+enum WidgetTheme: String, Codable, CaseIterable, Identifiable {
+    case classic
+    case vinyl
+    case poster
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .classic: return "经典卡片"
+        case .vinyl: return "黑胶唱片"
+        case .poster: return "全屏海报"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .classic: return "圆角封面搭配主色渐变"
+        case .vinyl: return "圆形黑胶盘面与极简唱针"
+        case .poster: return "封面铺满卡片与深色遮罩"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .classic: return "rectangle.inset.filled"
+        case .vinyl: return "opticaldisc"
+        case .poster: return "photo.fill"
+        }
+    }
+}
+
+struct WidgetAppearance: Codable, Equatable {
+    var theme: WidgetTheme
+
+    static let `default` = WidgetAppearance(theme: .classic)
+}
+
 enum NowPlayingShared {
     static let widgetKind = "com.marigold.NowPlayingWidget.widget"
     static let widgetBundleID = "com.marigold.NowPlayingWidget.widget"
@@ -20,6 +58,7 @@ enum NowPlayingShared {
     static let dataFileName = "nowplaying.json"
     static let artworkFileName = "cover.jpg"
     static let idleArtworkFileName = "idle-cover.png"
+    static let appearanceFileName = "appearance.json"
     static let playbackCommandFileName = "playback-command.json"
 
     static func localSupportURL() -> URL? {
@@ -105,6 +144,33 @@ enum NowPlayingShared {
 
     static func readablePlaybackCommandURLs() -> [URL] {
         writablePlaybackCommandURLs()
+    }
+
+    static func readableAppearanceURLs() -> [URL] {
+        writableContainerURLs().map {
+            $0.appendingPathComponent(appearanceFileName)
+        }
+    }
+
+    static func loadAppearance() -> WidgetAppearance {
+        for url in readableAppearanceURLs()
+        where FileManager.default.fileExists(atPath: url.path) {
+            guard let data = try? Data(contentsOf: url),
+                  let appearance = try? JSONDecoder().decode(WidgetAppearance.self, from: data) else {
+                continue
+            }
+            return appearance
+        }
+        return .default
+    }
+
+    static func saveAppearance(_ appearance: WidgetAppearance) throws {
+        let data = try JSONEncoder().encode(appearance)
+        for container in writableContainerURLs() {
+            try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+            let url = container.appendingPathComponent(appearanceFileName)
+            try data.write(to: url, options: .atomic)
+        }
     }
 
     private static func unique(_ urls: [URL]) -> [URL] {

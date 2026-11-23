@@ -35,6 +35,29 @@ struct NowPlayingReaderTests {
         precondition(playing.snapshot.album == "测试专辑")
         precondition(playing.snapshot.isPlaying && playing.snapshot.hasArtwork)
         precondition(playing.artworkData == cover)
+        precondition(reader.backgroundColorComputeCount == 1)
+
+        // Repeated reads with identical artwork should reuse cached background color.
+        let cachedRead = try parse()
+        precondition(cachedRead.artworkData == cover)
+        precondition(cachedRead.snapshot.backgroundRed == playing.snapshot.backgroundRed)
+        precondition(cachedRead.snapshot.backgroundGreen == playing.snapshot.backgroundGreen)
+        precondition(cachedRead.snapshot.backgroundBlue == playing.snapshot.backgroundBlue)
+        precondition(reader.backgroundColorComputeCount == 1)
+
+        // Changing artwork should recompute background color.
+        let blueBitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+            isPlanar: false, colorSpaceName: .calibratedRGB, bytesPerRow: 4, bitsPerPixel: 32
+        )!
+        blueBitmap.setColor(NSColor(calibratedRed: 0, green: 0, blue: 1, alpha: 1), atX: 0, y: 0)
+        let blueCover = blueBitmap.representation(using: .png, properties: [:])!
+        fixture["kMRMediaRemoteNowPlayingInfoArtworkData"] = blueCover.base64EncodedString()
+        let changedCover = try parse()
+        precondition(changedCover.artworkData == blueCover)
+        precondition(changedCover.snapshot.backgroundBlue > changedCover.snapshot.backgroundRed)
+        precondition(reader.backgroundColorComputeCount == 2)
 
         fixture["kMRMediaRemoteNowPlayingInfoPlaybackRate"] = "0"
         fixture.removeValue(forKey: "kMRMediaRemoteNowPlayingInfoArtworkData")
@@ -62,6 +85,12 @@ struct NowPlayingReaderTests {
         } catch is CocoaError {
             // Expected: corrupt CLI output must remain an error, not stale data.
         }
-        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output")
+        for theme in WidgetTheme.allCases {
+            let encoded = try JSONEncoder().encode(WidgetAppearance(theme: theme))
+            let decoded = try JSONDecoder().decode(WidgetAppearance.self, from: encoded)
+            precondition(decoded.theme == theme)
+        }
+        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes")
+        try WidgetSyncPipelineTests.run()
     }
 }

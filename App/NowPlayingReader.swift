@@ -7,7 +7,24 @@ struct NowPlayingReadResult {
 }
 
 final class NowPlayingReader {
-    func read() async throws -> NowPlayingReadResult {
+    private struct CachedArtwork {
+        let base64: String
+        let data: Data?
+        let backgroundColor: (red: Double, green: Double, blue: Double)
+    }
+
+    private let artworkResolver: HighResArtworkResolver?
+    private let cacheLock = NSLock()
+    private var cachedArtwork: CachedArtwork?
+    private var cachedHighResKey: String?
+    private var cachedHighResColor: (red: Double, green: Double, blue: Double)?
+    private(set) var backgroundColorComputeCount = 0
+
+    init(artworkResolver: HighResArtworkResolver? = nil) {
+        self.artworkResolver = artworkResolver
+    }
+
+    func read() throws -> NowPlayingReadResult {
         try parse(runNowPlayingCLI())
     }
 
@@ -21,17 +38,31 @@ final class NowPlayingReader {
             return NowPlayingReadResult(snapshot: .empty, artworkData: nil)
         }
 
-        let title = string(info, "kMRMediaRemoteNowPlayingInfoTitle")
-        let artist = string(info, "kMRMediaRemoteNowPlayingInfoArtist")
+        let rawTitle = string(info, "kMRMediaRemoteNowPlayingInfoTitle")
+        let rawArtist = string(info, "kMRMediaRemoteNowPlayingInfoArtist")
+        let resolvedTitle = rawTitle.isEmpty ? "未知歌曲" : rawTitle
+        let resolvedArtist = rawArtist.isEmpty ? "未知歌手" : rawArtist
         let album = string(info, "kMRMediaRemoteNowPlayingInfoAlbum")
         let playbackRate = number(info, "kMRMediaRemoteNowPlayingInfoPlaybackRate")
         let artworkBase64 = string(info, "kMRMediaRemoteNowPlayingInfoArtworkData")
-        let artworkData = artworkBase64.isEmpty ? nil : Data(base64Encoded: artworkBase64)
-        let backgroundColor = backgroundColor(from: artworkData)
+        var (artworkData, backgroundColor) = resolveArtwork(from: artworkBase64)
+
+        if let highResData = artworkResolver?.resolveIfNeeded(
+            title: resolvedTitle,
+            artist: resolvedArtist,
+            album: album,
+            currentArtwork: artworkData
+        ) {
+            artworkData = highResData
+            backgroundColor = highResBackgroundColor(
+                for: highResData,
+                cacheKey: "\(resolvedTitle)\u{1f}\(resolvedArtist)\u{1f}\(album)"
+            )
+        }
 
         let snapshot = NowPlayingSnapshot(
-            title: title.isEmpty ? "未知歌曲" : title,
-            artist: artist.isEmpty ? "未知歌手" : artist,
+            title: resolvedTitle,
+            artist: resolvedArtist,
             album: album,
             isPlaying: playbackRate > 0,
             sourceBundleID: sourceBundleID,
@@ -69,6 +100,56 @@ final class NowPlayingReader {
         if let value = info[key] as? Int { return Double(value) }
         if let value = info[key] as? String { return Double(value) ?? 0 }
         return 0
+    }
+
+    private func resolveArtwork(
+        from base64: String
+    ) -> (data: Data?, backgroundColor: (red: Double, green: Double, blue: Double)) {
+        guard !base64.isEmpty else {
+            cacheLock.lock()
+            cachedArtwork = nil
+            cacheLock.unlock()
+            return (nil, (0.64, 0.10, 0.13))
+        }
+
+        cacheLock.lock()
+        if let cached = cachedArtwork, cached.base64 == base64 {
+            cacheLock.unlock()
+            return (cached.data, cached.backgroundColor)
+        }
+        cacheLock.unlock()
+
+        let artworkData = Data(base64Encoded: base64)
+        let color = backgroundColor(from: artworkData)
+
+        cacheLock.lock()
+        cachedArtwork = CachedArtwork(base64: base64, data: artworkData, backgroundColor: color)
+        backgroundColorComputeCount += 1
+        cacheLock.unlock()
+
+        return (artworkData, color)
+    }
+
+    private func highResBackgroundColor(
+        for data: Data,
+        cacheKey: String
+    ) -> (red: Double, green: Double, blue: Double) {
+        cacheLock.lock()
+        if cachedHighResKey == cacheKey, let cached = cachedHighResColor {
+            cacheLock.unlock()
+            return cached
+        }
+        cacheLock.unlock()
+
+        let color = backgroundColor(from: data)
+
+        cacheLock.lock()
+        cachedHighResKey = cacheKey
+        cachedHighResColor = color
+        backgroundColorComputeCount += 1
+        cacheLock.unlock()
+
+        return color
     }
 
     private func backgroundColor(from artworkData: Data?) -> (red: Double, green: Double, blue: Double) {
