@@ -150,3 +150,47 @@
 "Pause the current track." = "暂停当前歌曲。";
 "Next Track" = "下一首";
 "Switch to the next track." = "切换到下一首歌曲。";
+
+/* Stats & History */
+"nav.stats" = "统计";
+"stats.title" = "听歌统计";
+"stats.range.label" = "时间范围";
+"stats.range.today" = "今日";
+"stats.range.week" = "本周";
+"stats.range.month" = "本月";
+"stats.range.all" = "全部";
+
+"stats.kpi.plays" = "累计播放";
+"stats.kpi.plays_value" = "%d 首";
+"stats.kpi.duration" = "聆听时长";
+"stats.kpi.avg_daily_minutes" = "日均 %d 分钟";
+"stats.kpi.top_artist" = "最爱歌手";
+"stats.kpi.top_artist_sub" = "播放 %d 次 · 占 %d%%";
+"stats.kpi.players" = "播放器分布";
+"stats.kpi.all_time_sub" = "全部累计记录";
+"stats.kpi.delta_today" = "%@ 较昨日";
+"stats.kpi.delta_week" = "%@ 较上周";
+"stats.kpi.delta_month" = "%@ 较上月";
+"stats.duration.minutes" = "%d 分钟";
+"stats.duration.hours" = "%@ 小时";
+"stats.empty_short" = "暂无记录";
+
+"stats.heatmap.title" = "听歌热力图";
+"stats.heatmap.streak_summary" = "连续听歌 %d 天 · 活跃 %d 天";
+"stats.heatmap.hover_hint" = "悬停方格查看每日详情";
+"stats.heatmap.hover_empty" = "%@ · 暂无播放记录";
+"stats.heatmap.hover_detail" = "%@ · 播放 %d 首 · %d 分钟";
+"stats.heatmap.less" = "少";
+"stats.heatmap.more" = "多";
+
+"stats.top_tracks.title" = "最常单曲 Top 3";
+"stats.play_count_badge" = "%d 次";
+"stats.recent.title" = "最近播放";
+"stats.filter.all" = "全部";
+"stats.empty_tracks" = "播放超过 10 秒后将自动计入 Top 榜单。";
+"stats.empty_history" = "该时间段暂无跨播放器播放记录。";
+"stats.clear.button" = "清空";
+"stats.clear.confirm_title" = "确定清空听歌统计与历史记录吗？";
+"stats.clear.confirm_message" = "将删除所有已记录的播放历史、热力图数据及缩略图缓存。";
+"stats.clear.confirm_action" = "清空记录";
+"stats.clear.cancel" = "取消";

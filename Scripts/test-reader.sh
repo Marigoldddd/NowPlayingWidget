@@ -9,6 +9,7 @@ xcrun swiftc \
     "$ROOT_DIR/Shared/PlaybackCommand.swift" \
     "$ROOT_DIR/Shared/NowPlayingCLI.swift" \
     "$ROOT_DIR/App/AppUpdater.swift" \
+    "$ROOT_DIR/App/ListeningHistoryStore.swift" \
     "$ROOT_DIR/App/HighResArtworkResolver.swift" \
     "$ROOT_DIR/App/LyricResolver.swift" \
     "$ROOT_DIR/App/NowPlayingReader.swift" \

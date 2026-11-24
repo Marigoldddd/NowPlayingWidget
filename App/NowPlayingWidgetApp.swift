@@ -117,6 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenuLocalization()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        model.flushHistory()
+    }
+
     private func updateMenuLocalization() {
         let lang = model.appearance.language
         statusItem?.button?.toolTip = L10n.tr("menubar.tooltip", language: lang)
@@ -205,9 +209,11 @@ final class NowPlayingAppModel: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var widgetSyncReport: WidgetSyncReport?
     @Published private(set) var updateStatus: UpdateStatus = .idle
+    @Published private(set) var historyRevision = 0
 
     private let monitor = NowPlayingMonitor()
     private let updater = AppUpdater()
+    private let historyStore = ListeningHistoryStore()
     private var hasStarted = false
 
     private init() {
@@ -355,9 +361,14 @@ final class NowPlayingAppModel: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
 
         monitor.onSnapshotRead = { [weak self] snapshot in
-            self?.snapshot = snapshot
-            self?.lastRefreshDate = Date()
-            self?.lastErrorMessage = nil
+            guard let self else { return }
+            self.snapshot = snapshot
+            self.lastRefreshDate = Date()
+            self.lastErrorMessage = nil
+            let didCommit = self.historyStore.record(snapshot: snapshot, artworkURL: self.artworkURL)
+            if didCommit || snapshot.isPlaying {
+                self.historyRevision += 1
+            }
         }
         monitor.onSnapshotWritten = { [weak self] in
             self?.artworkRevision += 1
@@ -366,6 +377,43 @@ final class NowPlayingAppModel: ObservableObject {
             self?.lastErrorMessage = detail
         }
         monitor.start()
+    }
+
+    var hasListeningHistory: Bool {
+        _ = historyRevision
+        return !historyStore.database.entries.isEmpty || !historyStore.database.dailyBuckets.isEmpty
+    }
+
+    func listeningStats(for range: StatsTimeRange) -> ListeningStatsSummary {
+        _ = historyRevision
+        return historyStore.stats(for: range, language: appearance.language)
+    }
+
+    func listeningHeatmap(weeks: Int = 26) -> ListeningHeatmapData {
+        _ = historyRevision
+        return historyStore.heatmap(weeks: weeks, language: appearance.language)
+    }
+
+    func recentPlaybackEntries(
+        for range: StatsTimeRange,
+        sourceBundleID: String? = nil,
+        limit: Int = 30
+    ) -> [PlaybackHistoryEntry] {
+        _ = historyRevision
+        return historyStore.recentEntries(for: range, sourceBundleID: sourceBundleID, limit: limit)
+    }
+
+    func cachedHistoryArtworkURL(for hash: String?) -> URL? {
+        historyStore.artworkURL(for: hash)
+    }
+
+    func clearListeningHistory() {
+        historyStore.clearHistory()
+        historyRevision += 1
+    }
+
+    func flushHistory() {
+        historyStore.flushIfNeeded(force: true)
     }
 
     func refreshAfterPlaybackControl() {
@@ -569,6 +617,12 @@ struct MainWindowView: View {
                 }
                 .tag(MainTab.overview)
 
+            StatsPage(model: model)
+                .tabItem {
+                    Label(L10n.tr("nav.stats", language: lang), systemImage: "chart.bar.xaxis")
+                }
+                .tag(MainTab.stats)
+
             AppearancePage(model: model)
                 .tabItem {
                     Label(L10n.tr("nav.appearance", language: lang), systemImage: "photo")
@@ -588,6 +642,7 @@ struct MainWindowView: View {
 
 private enum MainTab {
     case overview
+    case stats
     case appearance
     case help
 }

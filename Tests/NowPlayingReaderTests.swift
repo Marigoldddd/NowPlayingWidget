@@ -199,7 +199,60 @@ struct NowPlayingReaderTests {
         precondition(parsedRelease.version == SemanticVersion("1.0.18"))
         precondition(parsedRelease.dmgName == "NowPlayingWidget-v1.0.18-macOS-universal.dmg")
         precondition(parsedRelease.dmgURL != nil)
-        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes, deep links, zero-process idle, bilingual lyrics, chorus scoring, updater")
+
+        // ListeningHistoryStore: threshold commit, rapid skip exclusion, cross-player stats & heatmap
+        let historyDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NowPlayingHistoryTest-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: historyDir) }
+        let store = ListeningHistoryStore(directoryURL: historyDir, commitThresholdSeconds: 10)
+        let t0 = Date(timeIntervalSince1970: 1_795_500_000)
+
+        let songA = NowPlayingSnapshot(
+            title: "運命の人",
+            artist: "『ユイカ』",
+            album: "紺色に憧れて",
+            isPlaying: true,
+            sourceBundleID: "com.netease.163music",
+            updatedAt: t0,
+            hasArtwork: false,
+            backgroundRed: 0,
+            backgroundGreen: 0,
+            backgroundBlue: 0
+        )
+        let songB = NowPlayingSnapshot(
+            title: "Cruel Summer",
+            artist: "Taylor Swift",
+            album: "Lover",
+            isPlaying: true,
+            sourceBundleID: "com.spotify.client",
+            updatedAt: t0,
+            hasArtwork: false,
+            backgroundRed: 0,
+            backgroundGreen: 0,
+            backgroundBlue: 0
+        )
+
+        precondition(!store.record(snapshot: songA, artworkURL: nil, at: t0))
+        precondition(!store.record(snapshot: songA, artworkURL: nil, at: t0.addingTimeInterval(5)))
+        precondition(store.record(snapshot: songA, artworkURL: nil, at: t0.addingTimeInterval(11)))
+        // Rapid skip on songB (<10s) should not commit a play
+        precondition(!store.record(snapshot: songB, artworkURL: nil, at: t0.addingTimeInterval(20)))
+        precondition(store.record(snapshot: songB, artworkURL: nil, at: t0.addingTimeInterval(32)))
+
+        let summary = store.stats(for: .all, now: t0.addingTimeInterval(40), language: .zhHans)
+        precondition(summary.playCount == 2)
+        precondition(summary.playerDistribution.count == 2)
+        precondition(summary.topTracks.count == 2)
+        let heatmap = store.heatmap(weeks: 4, now: t0.addingTimeInterval(40), language: .zhHans)
+        precondition(heatmap.currentStreakDays == 1)
+        precondition(heatmap.activeDaysCount == 1)
+
+        let reloaded = ListeningHistoryStore(directoryURL: historyDir, commitThresholdSeconds: 10)
+        precondition(reloaded.database.entries.count == 2)
+        reloaded.clearHistory()
+        precondition(reloaded.database.entries.isEmpty)
+
+        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes, deep links, zero-process idle, bilingual lyrics, chorus scoring, updater, listening history")
         try WidgetSyncPipelineTests.run()
     }
 }

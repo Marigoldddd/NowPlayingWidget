@@ -150,3 +150,47 @@
 "Pause the current track." = "Pause the current track.";
 "Next Track" = "Next Track";
 "Switch to the next track." = "Switch to the next track.";
+
+/* Stats & History */
+"nav.stats" = "Stats";
+"stats.title" = "Listening Stats";
+"stats.range.label" = "Time Range";
+"stats.range.today" = "Today";
+"stats.range.week" = "Week";
+"stats.range.month" = "Month";
+"stats.range.all" = "All";
+
+"stats.kpi.plays" = "Total Plays";
+"stats.kpi.plays_value" = "%d";
+"stats.kpi.duration" = "Listening Time";
+"stats.kpi.avg_daily_minutes" = "%d min/day avg";
+"stats.kpi.top_artist" = "Top Artist";
+"stats.kpi.top_artist_sub" = "%d plays · %d%%";
+"stats.kpi.players" = "Players";
+"stats.kpi.all_time_sub" = "All recorded plays";
+"stats.kpi.delta_today" = "%@ vs yesterday";
+"stats.kpi.delta_week" = "%@ vs last week";
+"stats.kpi.delta_month" = "%@ vs last month";
+"stats.duration.minutes" = "%d min";
+"stats.duration.hours" = "%@ hr";
+"stats.empty_short" = "No data yet";
+
+"stats.heatmap.title" = "Listening Heatmap";
+"stats.heatmap.streak_summary" = "%d-day streak · %d active days";
+"stats.heatmap.hover_hint" = "Hover a square for daily details";
+"stats.heatmap.hover_empty" = "%@ · No plays recorded";
+"stats.heatmap.hover_detail" = "%@ · %d plays · %d min";
+"stats.heatmap.less" = "Less";
+"stats.heatmap.more" = "More";
+
+"stats.top_tracks.title" = "Top 3 Tracks";
+"stats.play_count_badge" = "%d";
+"stats.recent.title" = "Recent Plays";
+"stats.filter.all" = "All";
+"stats.empty_tracks" = "Play music for 10+ seconds to build your Top 3.";
+"stats.empty_history" = "No playback history in this range yet.";
+"stats.clear.button" = "Clear";
+"stats.clear.confirm_title" = "Clear Listening History?";
+"stats.clear.confirm_message" = "This removes all recorded plays, heatmap history, and cached thumbnails.";
+"stats.clear.confirm_action" = "Clear History";
+"stats.clear.cancel" = "Cancel";
