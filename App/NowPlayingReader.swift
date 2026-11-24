@@ -61,8 +61,8 @@ final class NowPlayingReader {
 
         let rawTitle = string(info, "kMRMediaRemoteNowPlayingInfoTitle")
         let rawArtist = string(info, "kMRMediaRemoteNowPlayingInfoArtist")
-        let resolvedTitle = rawTitle.isEmpty ? "未知歌曲" : rawTitle
-        let resolvedArtist = rawArtist.isEmpty ? "未知歌手" : rawArtist
+        let resolvedTitle = rawTitle.isEmpty ? L10n.tr("song.unknown") : rawTitle
+        let resolvedArtist = rawArtist.isEmpty ? L10n.tr("artist.unknown") : rawArtist
         let album = string(info, "kMRMediaRemoteNowPlayingInfoAlbum")
         let playbackRate = number(info, "kMRMediaRemoteNowPlayingInfoPlaybackRate")
         let artworkBase64 = string(info, "kMRMediaRemoteNowPlayingInfoArtworkData")

@@ -1,0 +1,152 @@
+/* Language */
+"language.system" = "跟随系统";
+"language.title" = "界面语言";
+"language.subtitle" = "设置主窗口与桌面小组件的显示语言。";
+"language.updated" = "已将界面语言切换为「%@」。";
+
+/* Sources */
+"source.netease" = "网易云音乐";
+"source.qqmusic" = "QQ 音乐";
+"source.applemusic" = "Apple Music";
+"source.spotify" = "Spotify";
+
+/* Themes & Sizes */
+"theme.classic.name" = "经典卡片";
+"theme.classic.subtitle" = "圆角封面搭配主色渐变";
+"theme.vinyl.name" = "黑胶唱片";
+"theme.vinyl.subtitle" = "圆形黑胶盘面与极简唱针";
+"theme.poster.name" = "全屏海报";
+"theme.poster.subtitle" = "封面铺满卡片与深色遮罩";
+
+"size.small" = "小号";
+"size.medium" = "中号";
+"size.large" = "大号";
+
+/* Fallback / Placeholder */
+"song.unknown" = "未知歌曲";
+"artist.unknown" = "未知歌手";
+"placeholder.title" = "风声暂代旋律";
+"placeholder.artist" = "等待同步";
+
+/* Menu Bar */
+"menubar.tooltip" = "正在播放小组件";
+"menubar.open_main" = "打开主页面";
+"menubar.quit" = "退出";
+
+/* Navigation */
+"nav.overview" = "概览";
+"nav.appearance" = "外观";
+"nav.help" = "帮助";
+
+/* Overview */
+"overview.subtitle" = "桌面小组件的控制台。保持这个 App 运行，小组件就会同步当前播放信息。";
+"overview.sync.title" = "同步小组件";
+"overview.sync.in_progress" = "同步中…";
+"overview.sync.subtitle" = "读取歌曲、写入数据并请求更新";
+"overview.folder.title" = "打开数据目录";
+"overview.folder.subtitle" = "查看共享 JSON 和封面文件";
+"overview.step.read" = "读取播放信息";
+"overview.step.write" = "写入数据";
+"overview.step.request" = "请求刷新";
+"overview.last_read.none" = "尚未读取播放信息";
+"overview.last_read.format" = "上次读取：%@";
+
+/* Status */
+"status.waiting_music" = "等待音乐播放";
+"status.unknown_player" = "未知播放器";
+"status.no_music" = "未检测到音乐";
+"status.playing" = "播放中";
+"status.paused" = "已暂停";
+"status.cli.missing" = "未找到内置 nowplaying-cli";
+"status.cli.available" = "内置 nowplaying-cli 可用";
+"status.sync.step.waiting" = "等待中";
+"status.sync.step.running" = "进行中…";
+"status.sync.step.skipped" = "未执行";
+"status.sync.step.failed" = "失败：%@";
+"status.sync.read.idle" = "未检测到支持的播放器，使用待机画面";
+"status.sync.read.track" = "已读取：%@";
+"status.sync.write.done" = "已写入小组件数据";
+"status.sync.request.done" = "已请求更新，实际显示由 macOS 调度";
+
+/* Appearance */
+"appearance.title" = "外观";
+"appearance.subtitle" = "选择桌面小组件皮肤，或自定义未播放音乐时显示的静止图片。";
+"appearance.skin.title" = "小组件皮肤";
+"appearance.skin.per_size" = "按尺寸分别设置";
+"appearance.skin.size_picker" = "小组件尺寸";
+"appearance.skin.size_picker_option" = "%@（%@）";
+"appearance.skin.per_size_hint_on" = "已开启按尺寸设置：可分别为桌面上的小号、中号、大号小组件指定不同皮肤。";
+"appearance.skin.per_size_hint_off" = "当前所有尺寸共用同一套皮肤；开启右上角「按尺寸分别设置」可给小 / 中 / 大号单独选皮肤。";
+"appearance.skin.toggle_on" = "已开启按尺寸设置皮肤，可分别选择小号、中号、大号皮肤。";
+"appearance.skin.toggle_off" = "已恢复统一皮肤（%@）。";
+"appearance.skin.switched_size" = "已将「%@」小组件切换为「%@」。";
+"appearance.skin.switched_all" = "已切换为「%@」皮肤，正在请求刷新小组件。";
+"appearance.skin.save_failed" = "保存皮肤设置失败: %@";
+
+"appearance.idle.title" = "静止状态图片";
+"appearance.idle.subtitle" = "未检测到音乐时，小组件会优先显示这里设置的图片；不设置则使用默认音乐图标。";
+"appearance.idle.replace" = "更换图片";
+"appearance.idle.choose" = "选择图片";
+"appearance.idle.remove" = "删除图片";
+"appearance.idle.current_custom" = "当前：已设置自定义图片";
+"appearance.idle.current_default" = "当前：使用默认图标";
+"appearance.idle.updated" = "静止图片已更新。";
+"appearance.idle.save_failed" = "保存图片失败: %@";
+"appearance.idle.restored" = "已恢复默认音乐图标。";
+
+"appearance.folder.title" = "数据目录";
+"appearance.folder.open_finder" = "在 Finder 中打开";
+
+/* Help */
+"help.title" = "帮助";
+"help.subtitle" = "第一次安装后，可以按这个流程确认小组件已经正常工作。";
+"help.step1.title" = "保持 App 运行";
+"help.step1.detail" = "菜单栏里出现音乐图标后，后台同步服务就已经启动。";
+"help.step2.title" = "添加桌面小组件";
+"help.step2.detail" = "在 macOS 的小组件面板中添加“正在播放”。";
+"help.step3.title" = "播放音乐并同步";
+"help.step3.detail" = "支持网易云音乐、QQ 音乐、Apple Music 和 Spotify。如需手动同步，前往「概览」点击「同步小组件」；桌面更新时机由 macOS 决定。";
+"help.step4.title" = "使用播放控制";
+"help.step4.detail" = "小组件里的上一首、播放暂停、下一首按钮会唤起主 App 执行控制，所以主 App 需要保持运行。";
+
+/* Updates */
+"update.action.checking" = "检查中…";
+"update.action.installing" = "更新中…";
+"update.action.available" = "可更新 %@";
+"update.action.check" = "检查更新";
+"update.current_version" = "当前版本 v%@";
+"update.checking_banner" = "正在从 GitHub Releases 检查最新版本…";
+"update.up_to_date_banner" = "当前已是最新版本（v%@）。";
+"update.new_version_banner" = "发现新版本 %@";
+"update.open_releases" = "打开 Releases 页面";
+"update.view_page" = "查看页面";
+"update.install_now" = "立即更新并重启";
+"update.stage.preparing" = "正在准备下载…";
+"update.stage.downloading" = "正在下载 %@…";
+"update.stage.mounting" = "正在挂载并校验安装包…";
+"update.stage.replacing" = "正在替换旧版本并重启应用…";
+
+"update.error.invalid_response" = "无法解析 GitHub Release 版本信息。";
+"update.error.rate_limited" = "GitHub 接口请求过于频繁，请稍后再试或直接打开 Release 页面。";
+"update.error.http_status" = "请求版本信息失败（HTTP %d）。";
+"update.error.missing_dmg" = "该版本暂未附带 DMG 安装包，请前往 GitHub Release 页面查看。";
+"update.error.untrusted_url" = "安装包下载链接域名不受信任，已中止自动安装。";
+"update.error.mount_failed" = "挂载安装包失败：%@";
+"update.error.invalid_bundle" = "安装包内的应用校验未通过，已中止替换。";
+"update.error.permission_denied" = "当前应用目录无写入权限，已将安装包保存至「下载」(%@) 并在 Finder 中打开，请手动拖入「应用程序」。";
+
+/* Widget */
+"widget.display_name" = "正在播放";
+"widget.description" = "显示当前网易云音乐、QQ 音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。";
+"widget.lyrics.empty_idle" = "播放音乐后将在此展示歌词海报";
+"widget.lyrics.instrumental" = "纯音乐 · 静静聆听";
+
+/* App Intents */
+"Previous Track" = "上一首";
+"Switch to the previous track." = "切换到上一首歌曲。";
+"Play" = "播放";
+"Start playing the current track." = "开始播放当前歌曲。";
+"Pause" = "暂停";
+"Pause the current track." = "暂停当前歌曲。";
+"Next Track" = "下一首";
+"Switch to the next track." = "切换到下一首歌曲。";

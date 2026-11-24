@@ -45,7 +45,7 @@ final class HighResArtworkResolver {
         album: String,
         currentArtwork: Data?
     ) -> Data? {
-        guard !title.isEmpty, title != "未知歌曲" else { return nil }
+        guard !title.isEmpty, title != "未知歌曲", title != "Unknown Song" else { return nil }
         if let currentArtwork, isHighResolution(currentArtwork) {
             return nil
         }
@@ -122,7 +122,7 @@ final class HighResArtworkResolver {
     }
 
     private func searchArtwork(key: CacheKey, referenceThumbnail: [UInt8]?) async -> Data? {
-        let cleanArtist = (key.artist == "未知歌手") ? "" : key.artist
+        let cleanArtist = (key.artist == "未知歌手" || key.artist == "Unknown Artist") ? "" : key.artist
         let strippedTitle = stripParentheticalSuffix(key.title)
 
         var queries: [String] = []

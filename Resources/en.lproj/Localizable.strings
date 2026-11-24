@@ -1,0 +1,152 @@
+/* Language */
+"language.system" = "System";
+"language.title" = "Language";
+"language.subtitle" = "Choose the display language for the app and desktop widgets.";
+"language.updated" = "Language switched to %@.";
+
+/* Sources */
+"source.netease" = "NetEase Music";
+"source.qqmusic" = "QQ Music";
+"source.applemusic" = "Apple Music";
+"source.spotify" = "Spotify";
+
+/* Themes & Sizes */
+"theme.classic.name" = "Classic Card";
+"theme.classic.subtitle" = "Rounded artwork with adaptive gradient";
+"theme.vinyl.name" = "Vinyl Record";
+"theme.vinyl.subtitle" = "Spinning-style disc & minimal tonearm";
+"theme.poster.name" = "Full Poster";
+"theme.poster.subtitle" = "Edge-to-edge artwork with dark scrim";
+
+"size.small" = "Small";
+"size.medium" = "Medium";
+"size.large" = "Large";
+
+/* Fallback / Placeholder */
+"song.unknown" = "Unknown Song";
+"artist.unknown" = "Unknown Artist";
+"placeholder.title" = "Wind Takes the Melody";
+"placeholder.artist" = "Waiting to Sync";
+
+/* Menu Bar */
+"menubar.tooltip" = "Now Playing Widget";
+"menubar.open_main" = "Open Main Window";
+"menubar.quit" = "Quit";
+
+/* Navigation */
+"nav.overview" = "Overview";
+"nav.appearance" = "Appearance";
+"nav.help" = "Help";
+
+/* Overview */
+"overview.subtitle" = "Desktop widget companion. Keep this app running to sync your current playback.";
+"overview.sync.title" = "Sync Widget";
+"overview.sync.in_progress" = "Syncing…";
+"overview.sync.subtitle" = "Read track, save data, and refresh";
+"overview.folder.title" = "Data Folder";
+"overview.folder.subtitle" = "View shared JSON and artwork";
+"overview.step.read" = "Read Playback Info";
+"overview.step.write" = "Write Widget Data";
+"overview.step.request" = "Request Refresh";
+"overview.last_read.none" = "Not synced yet";
+"overview.last_read.format" = "Last read: %@";
+
+/* Status */
+"status.waiting_music" = "Waiting for Music";
+"status.unknown_player" = "Unknown Player";
+"status.no_music" = "No Music Detected";
+"status.playing" = "Playing";
+"status.paused" = "Paused";
+"status.cli.missing" = "Bundled nowplaying-cli not found";
+"status.cli.available" = "Bundled nowplaying-cli ready";
+"status.sync.step.waiting" = "Waiting";
+"status.sync.step.running" = "Running…";
+"status.sync.step.skipped" = "Skipped";
+"status.sync.step.failed" = "Failed: %@";
+"status.sync.read.idle" = "No supported player detected; using idle view";
+"status.sync.read.track" = "Read: %@";
+"status.sync.write.done" = "Widget data saved";
+"status.sync.request.done" = "Refresh requested; display timing managed by macOS";
+
+/* Appearance */
+"appearance.title" = "Appearance";
+"appearance.subtitle" = "Choose a widget skin or customize the idle artwork when no music is playing.";
+"appearance.skin.title" = "Widget Skin";
+"appearance.skin.per_size" = "Per-Size Skins";
+"appearance.skin.size_picker" = "Widget Size";
+"appearance.skin.size_picker_option" = "%@ (%@)";
+"appearance.skin.per_size_hint_on" = "Per-size mode enabled: assign different skins to Small, Medium, and Large widgets.";
+"appearance.skin.per_size_hint_off" = "All widget sizes share the same skin. Enable \"Per-Size Skins\" to customize each size individually.";
+"appearance.skin.toggle_on" = "Per-size skins enabled for Small, Medium, and Large widgets.";
+"appearance.skin.toggle_off" = "Restored unified skin (%@).";
+"appearance.skin.switched_size" = "Switched \"%@\" widget to \"%@\".";
+"appearance.skin.switched_all" = "Switched to \"%@\" skin; refreshing widgets.";
+"appearance.skin.save_failed" = "Failed to save appearance settings: %@";
+
+"appearance.idle.title" = "Idle Artwork";
+"appearance.idle.subtitle" = "Displayed when no music is playing; falls back to the default music icon if unset.";
+"appearance.idle.replace" = "Replace Image";
+"appearance.idle.choose" = "Choose Image";
+"appearance.idle.remove" = "Remove Image";
+"appearance.idle.current_custom" = "Current: Custom image set";
+"appearance.idle.current_default" = "Current: Default icon";
+"appearance.idle.updated" = "Idle artwork updated.";
+"appearance.idle.save_failed" = "Failed to save image: %@";
+"appearance.idle.restored" = "Restored default music icon.";
+
+"appearance.folder.title" = "Data Folder";
+"appearance.folder.open_finder" = "Open in Finder";
+
+/* Help */
+"help.title" = "Help";
+"help.subtitle" = "After first installation, follow these steps to verify your widget works properly.";
+"help.step1.title" = "Keep App Running";
+"help.step1.detail" = "Once the music icon appears in the menu bar, background syncing is active.";
+"help.step2.title" = "Add Desktop Widget";
+"help.step2.detail" = "Add \"Now Playing\" from the macOS Widget Gallery.";
+"help.step3.title" = "Play Music & Sync";
+"help.step3.detail" = "Supports NetEase Music, QQ Music, Apple Music, and Spotify. Click \"Sync Widget\" in Overview for manual refresh; macOS schedules widget updates.";
+"help.step4.title" = "Playback Controls";
+"help.step4.detail" = "Previous, Play/Pause, and Next buttons on the widget invoke the main app, so keep the app running.";
+
+/* Updates */
+"update.action.checking" = "Checking…";
+"update.action.installing" = "Updating…";
+"update.action.available" = "Update %@";
+"update.action.check" = "Check for Updates";
+"update.current_version" = "Current v%@";
+"update.checking_banner" = "Checking GitHub Releases for the latest version…";
+"update.up_to_date_banner" = "You're up to date (v%@).";
+"update.new_version_banner" = "New Version Available %@";
+"update.open_releases" = "Open Releases";
+"update.view_page" = "View Release";
+"update.install_now" = "Update & Restart";
+"update.stage.preparing" = "Preparing download…";
+"update.stage.downloading" = "Downloading %@…";
+"update.stage.mounting" = "Mounting and verifying installer…";
+"update.stage.replacing" = "Replacing old version and restarting…";
+
+"update.error.invalid_response" = "Unable to parse GitHub Release information.";
+"update.error.rate_limited" = "GitHub API rate limit exceeded. Please try again later or open the Release page.";
+"update.error.http_status" = "Failed to fetch release info (HTTP %d).";
+"update.error.missing_dmg" = "This release has no DMG asset attached. Please check the GitHub Release page.";
+"update.error.untrusted_url" = "Untrusted download URL host; automatic installation aborted.";
+"update.error.mount_failed" = "Failed to mount DMG: %@";
+"update.error.invalid_bundle" = "App verification inside the DMG failed; replacement aborted.";
+"update.error.permission_denied" = "No write permission for the current app folder. Saved %@ to Downloads and opened Finder — please drag it to Applications manually.";
+
+/* Widget */
+"widget.display_name" = "Now Playing";
+"widget.description" = "Displays the current song, artist, artwork, and playback status from NetEase Music, QQ Music, Apple Music, or Spotify.";
+"widget.lyrics.empty_idle" = "Lyrics will appear here when music plays";
+"widget.lyrics.instrumental" = "Instrumental · Pure Listening";
+
+/* App Intents */
+"Previous Track" = "Previous Track";
+"Switch to the previous track." = "Switch to the previous track.";
+"Play" = "Play";
+"Start playing the current track." = "Start playing the current track.";
+"Pause" = "Pause";
+"Pause the current track." = "Pause the current track.";
+"Next Track" = "Next Track";
+"Switch to the next track." = "Switch to the next track.";

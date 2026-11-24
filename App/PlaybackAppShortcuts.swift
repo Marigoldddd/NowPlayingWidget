@@ -5,25 +5,25 @@ struct PlaybackAppShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: PreviousTrackIntent(),
             phrases: ["\(.applicationName) previous track"],
-            shortTitle: "上一首",
+            shortTitle: "Previous Track",
             systemImageName: "backward.fill"
         )
         AppShortcut(
             intent: PlayTrackIntent(),
             phrases: ["\(.applicationName) play music"],
-            shortTitle: "播放",
+            shortTitle: "Play",
             systemImageName: "play.fill"
         )
         AppShortcut(
             intent: PauseTrackIntent(),
             phrases: ["\(.applicationName) pause music"],
-            shortTitle: "暂停",
+            shortTitle: "Pause",
             systemImageName: "pause.fill"
         )
         AppShortcut(
             intent: NextTrackIntent(),
             phrases: ["\(.applicationName) next track"],
-            shortTitle: "下一首",
+            shortTitle: "Next Track",
             systemImageName: "forward.fill"
         )
     }

@@ -1,15 +1,16 @@
 import Foundation
 
 enum NowPlayingSource {
-    static let displayNames: [String: String] = [
-        "com.netease.163music": "网易云音乐",
-        "com.tencent.QQMusicMac": "QQ 音乐",
-        "com.apple.Music": "Apple Music",
-        "com.spotify.client": "Spotify",
+    static let displayNameKeys: [String: String] = [
+        "com.netease.163music": "source.netease",
+        "com.tencent.QQMusicMac": "source.qqmusic",
+        "com.apple.Music": "source.applemusic",
+        "com.spotify.client": "source.spotify",
     ]
 
-    static func displayName(for bundleID: String) -> String? {
-        displayNames[bundleID]
+    static func displayName(for bundleID: String, language: AppLanguage? = nil) -> String? {
+        guard let key = displayNameKeys[bundleID] else { return nil }
+        return L10n.tr(key, language: language)
     }
 }
 
@@ -22,17 +23,17 @@ enum WidgetTheme: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .classic: return "经典卡片"
-        case .vinyl: return "黑胶唱片"
-        case .poster: return "全屏海报"
+        case .classic: return L10n.tr("theme.classic.name")
+        case .vinyl: return L10n.tr("theme.vinyl.name")
+        case .poster: return L10n.tr("theme.poster.name")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .classic: return "圆角封面搭配主色渐变"
-        case .vinyl: return "圆形黑胶盘面与极简唱针"
-        case .poster: return "封面铺满卡片与深色遮罩"
+        case .classic: return L10n.tr("theme.classic.subtitle")
+        case .vinyl: return L10n.tr("theme.vinyl.subtitle")
+        case .poster: return L10n.tr("theme.poster.subtitle")
         }
     }
 
@@ -54,9 +55,9 @@ enum WidgetSizeClass: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .small: return "小号"
-        case .medium: return "中号"
-        case .large: return "大号"
+        case .small: return L10n.tr("size.small")
+        case .medium: return L10n.tr("size.medium")
+        case .large: return L10n.tr("size.large")
         }
     }
 }
@@ -66,8 +67,40 @@ struct WidgetAppearance: Codable, Equatable {
     var smallTheme: WidgetTheme?
     var mediumTheme: WidgetTheme?
     var largeTheme: WidgetTheme?
+    var language: AppLanguage
 
     static let `default` = WidgetAppearance(theme: .classic)
+
+    init(
+        theme: WidgetTheme,
+        smallTheme: WidgetTheme? = nil,
+        mediumTheme: WidgetTheme? = nil,
+        largeTheme: WidgetTheme? = nil,
+        language: AppLanguage = .system
+    ) {
+        self.theme = theme
+        self.smallTheme = smallTheme
+        self.mediumTheme = mediumTheme
+        self.largeTheme = largeTheme
+        self.language = language
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case theme
+        case smallTheme
+        case mediumTheme
+        case largeTheme
+        case language
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        theme = try container.decodeIfPresent(WidgetTheme.self, forKey: .theme) ?? .classic
+        smallTheme = try container.decodeIfPresent(WidgetTheme.self, forKey: .smallTheme)
+        mediumTheme = try container.decodeIfPresent(WidgetTheme.self, forKey: .mediumTheme)
+        largeTheme = try container.decodeIfPresent(WidgetTheme.self, forKey: .largeTheme)
+        language = try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
+    }
 
     var usesPerSizeThemes: Bool {
         smallTheme != nil || mediumTheme != nil || largeTheme != nil
@@ -232,20 +265,22 @@ struct NowPlayingSnapshot: Codable, Equatable {
     var lyricLines: [String]
     var lyricTranslations: [String]
 
-    static let empty = NowPlayingSnapshot(
-        title: "风声暂代旋律",
-        artist: "等待同步",
-        album: "",
-        isPlaying: false,
-        sourceBundleID: "",
-        updatedAt: Date(timeIntervalSince1970: 0),
-        hasArtwork: false,
-        backgroundRed: 0.64,
-        backgroundGreen: 0.10,
-        backgroundBlue: 0.13,
-        lyricLines: [],
-        lyricTranslations: []
-    )
+    static var empty: NowPlayingSnapshot {
+        NowPlayingSnapshot(
+            title: L10n.tr("placeholder.title"),
+            artist: L10n.tr("placeholder.artist"),
+            album: "",
+            isPlaying: false,
+            sourceBundleID: "",
+            updatedAt: Date(timeIntervalSince1970: 0),
+            hasArtwork: false,
+            backgroundRed: 0.64,
+            backgroundGreen: 0.10,
+            backgroundBlue: 0.13,
+            lyricLines: [],
+            lyricTranslations: []
+        )
+    }
 
     init(
         title: String,

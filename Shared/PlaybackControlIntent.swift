@@ -4,8 +4,8 @@ import OSLog
 import WidgetKit
 
 struct PreviousTrackIntent: AudioPlaybackIntent {
-    static var title: LocalizedStringResource = "上一首"
-    static var description = IntentDescription("切换到上一首歌曲。")
+    static var title: LocalizedStringResource = "Previous Track"
+    static var description = IntentDescription("Switch to the previous track.")
 
     func perform() async throws -> some IntentResult {
         try PlaybackControlRunner.perform(.previous)
@@ -14,8 +14,8 @@ struct PreviousTrackIntent: AudioPlaybackIntent {
 }
 
 struct PlayTrackIntent: AudioPlaybackIntent {
-    static var title: LocalizedStringResource = "播放"
-    static var description = IntentDescription("开始播放当前歌曲。")
+    static var title: LocalizedStringResource = "Play"
+    static var description = IntentDescription("Start playing the current track.")
 
     func perform() async throws -> some IntentResult {
         try PlaybackControlRunner.perform(.play)
@@ -24,8 +24,8 @@ struct PlayTrackIntent: AudioPlaybackIntent {
 }
 
 struct PauseTrackIntent: AudioPlaybackIntent {
-    static var title: LocalizedStringResource = "暂停"
-    static var description = IntentDescription("暂停当前歌曲。")
+    static var title: LocalizedStringResource = "Pause"
+    static var description = IntentDescription("Pause the current track.")
 
     func perform() async throws -> some IntentResult {
         try PlaybackControlRunner.perform(.pause)
@@ -34,8 +34,8 @@ struct PauseTrackIntent: AudioPlaybackIntent {
 }
 
 struct NextTrackIntent: AudioPlaybackIntent {
-    static var title: LocalizedStringResource = "下一首"
-    static var description = IntentDescription("切换到下一首歌曲。")
+    static var title: LocalizedStringResource = "Next Track"
+    static var description = IntentDescription("Switch to the next track.")
 
     func perform() async throws -> some IntentResult {
         try PlaybackControlRunner.perform(.next)

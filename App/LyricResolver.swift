@@ -53,7 +53,7 @@ final class LyricResolver {
         artist: String,
         album: String
     ) -> LyricSnippet {
-        guard !title.isEmpty, title != "未知歌曲" else { return .empty }
+        guard !title.isEmpty, title != "未知歌曲", title != "Unknown Song" else { return .empty }
 
         let key = CacheKey(
             sourceBundleID: sourceBundleID,
@@ -117,7 +117,7 @@ final class LyricResolver {
     }
 
     private func searchLyrics(key: CacheKey) async -> LyricSnippet {
-        let cleanArtist = (key.artist == "未知歌手") ? "" : key.artist
+        let cleanArtist = (key.artist == "未知歌手" || key.artist == "Unknown Artist") ? "" : key.artist
         let strippedTitle = stripParentheticalSuffix(key.title)
 
         var queries: [String] = []

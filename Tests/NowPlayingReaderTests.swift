@@ -27,9 +27,11 @@ struct NowPlayingReaderTests {
             return try reader.parse(Data("CLI diagnostic\n".utf8) + json + Data("\n".utf8))
         }
 
+        L10n.overrideLanguage = .zhHans
         let playing = try parse()
         precondition(playing.snapshot.sourceBundleID == "com.tencent.QQMusicMac")
         precondition(NowPlayingSource.displayName(for: playing.snapshot.sourceBundleID) == "QQ 音乐")
+        precondition(NowPlayingSource.displayName(for: "com.netease.163music", language: .en) == "NetEase Music")
         precondition(playing.snapshot.title == "测试歌曲")
         precondition(playing.snapshot.artist == "测试歌手")
         precondition(playing.snapshot.album == "测试专辑")
@@ -71,7 +73,7 @@ struct NowPlayingReaderTests {
         precondition(missing.snapshot.title == "未知歌曲")
         precondition(missing.snapshot.artist == "未知歌手")
 
-        for bundleID in NowPlayingSource.displayNames.keys {
+        for bundleID in NowPlayingSource.displayNameKeys.keys {
             fixture["kMRMediaRemoteNowPlayingInfoClientBundleIdentifier"] = bundleID
             let result = try parse()
             precondition(result.snapshot.sourceBundleID == bundleID)

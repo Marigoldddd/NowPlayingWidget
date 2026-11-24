@@ -67,21 +67,21 @@ enum AppUpdaterError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "无法解析 GitHub Release 版本信息。"
+            return L10n.tr("update.error.invalid_response")
         case .rateLimited:
-            return "GitHub 接口请求过于频繁，请稍后再试或直接打开 Release 页面。"
+            return L10n.tr("update.error.rate_limited")
         case let .httpStatus(code):
-            return "请求版本信息失败（HTTP \(code)）。"
+            return L10n.fmt("update.error.http_status", code)
         case .missingDMGAsset:
-            return "该版本暂未附带 DMG 安装包，请前往 GitHub Release 页面查看。"
+            return L10n.tr("update.error.missing_dmg")
         case .untrustedDownloadHost:
-            return "安装包下载链接域名不受信任，已中止自动安装。"
+            return L10n.tr("update.error.untrusted_url")
         case let .mountFailed(detail):
-            return "挂载安装包失败：\(detail)"
+            return L10n.fmt("update.error.mount_failed", detail)
         case .invalidAppBundle:
-            return "安装包内的应用校验未通过，已中止替换。"
+            return L10n.tr("update.error.invalid_bundle")
         case let .movedToDownloads(url):
-            return "当前应用目录无写入权限，已将安装包保存至「下载」(\(url.lastPathComponent)) 并在 Finder 中打开，请手动拖入「应用程序」。"
+            return L10n.fmt("update.error.permission_denied", url.lastPathComponent)
         }
     }
 }
@@ -210,7 +210,7 @@ final class AppUpdater {
             throw AppUpdaterError.untrustedDownloadHost
         }
 
-        await onStage("正在下载 \(release.dmgName ?? release.tagName)…")
+        await onStage(L10n.fmt("update.stage.downloading", release.dmgName ?? release.tagName))
 
         var request = URLRequest(url: dmgURL)
         request.setValue("NowPlayingWidget/\(Self.currentVersionString)", forHTTPHeaderField: "User-Agent")
@@ -243,7 +243,7 @@ final class AppUpdater {
             throw AppUpdaterError.movedToDownloads(fallbackURL)
         }
 
-        await onStage("正在挂载并校验安装包…")
+        await onStage(L10n.tr("update.stage.mounting"))
 
         let mountDir = workDir.appendingPathComponent("mount", isDirectory: true)
         try FileManager.default.createDirectory(at: mountDir, withIntermediateDirectories: true)
@@ -292,7 +292,7 @@ final class AppUpdater {
             arguments: ["-dr", "com.apple.quarantine", stagingAppURL.path]
         )
 
-        await onStage("正在替换旧版本并重启应用…")
+        await onStage(L10n.tr("update.stage.replacing"))
 
         try Self.launchDetachedInstaller(
             currentPID: ProcessInfo.processInfo.processIdentifier,

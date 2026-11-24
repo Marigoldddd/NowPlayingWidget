@@ -75,6 +75,8 @@ private enum DeepLinkRouter {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private var openMenuItem: NSMenuItem?
+    private var quitMenuItem: NSMenuItem?
     private let model = NowPlayingAppModel.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -83,14 +85,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = MenuBarIcon.image()
         statusItem.button?.imagePosition = .imageOnly
-        statusItem.button?.toolTip = "正在播放小组件"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "打开主页面", action: #selector(openMainWindow), keyEquivalent: "o"))
+        let openItem = NSMenuItem(title: "", action: #selector(openMainWindow), keyEquivalent: "o")
+        let quitItem = NSMenuItem(title: "", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(openItem)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(quitItem)
         statusItem.menu = menu
         self.statusItem = statusItem
+        self.openMenuItem = openItem
+        self.quitMenuItem = quitItem
+        updateMenuLocalization()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLanguageChanged),
+            name: NowPlayingAppModel.languageDidChangeNotification,
+            object: nil
+        )
 
         model.startMonitoring()
 
@@ -98,6 +111,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if isDefaultLaunch {
             MainWindowController.shared.show()
         }
+    }
+
+    @objc private func handleLanguageChanged() {
+        updateMenuLocalization()
+    }
+
+    private func updateMenuLocalization() {
+        let lang = model.appearance.language
+        statusItem?.button?.toolTip = L10n.tr("menubar.tooltip", language: lang)
+        openMenuItem?.title = L10n.tr("menubar.open_main", language: lang)
+        quitMenuItem?.title = L10n.tr("menubar.quit", language: lang)
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -169,6 +193,7 @@ final class NowPlayingAppModel: ObservableObject {
         }
     }
 
+    static let languageDidChangeNotification = Notification.Name("NowPlayingWidgetLanguageDidChange")
     static let shared = NowPlayingAppModel()
 
     @Published private(set) var snapshot: NowPlayingSnapshot
@@ -187,10 +212,24 @@ final class NowPlayingAppModel: ObservableObject {
 
     private init() {
         let snapshot = Self.loadSavedSnapshot()
+        let loadedAppearance = NowPlayingShared.loadAppearance()
+        L10n.overrideLanguage = loadedAppearance.language
         self.snapshot = snapshot
         self.lastRefreshDate = snapshot.updatedAt.timeIntervalSince1970 > 0 ? snapshot.updatedAt : nil
         self.hasIdleArtwork = Self.idleArtworkExists
-        self.appearance = NowPlayingShared.loadAppearance()
+        self.appearance = loadedAppearance
+    }
+
+    func selectLanguage(_ language: AppLanguage) {
+        guard appearance.language != language else { return }
+        var next = appearance
+        next.language = language
+        L10n.overrideLanguage = language
+        saveAppearance(
+            next,
+            statusMessage: L10n.fmt("language.updated", language: language, language.displayName)
+        )
+        NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)
     }
 
     var isPerSizeThemeEnabled: Bool {
@@ -219,8 +258,8 @@ final class NowPlayingAppModel: ObservableObject {
         saveAppearance(
             next,
             statusMessage: enabled
-                ? "已开启按尺寸设置皮肤，可分别选择小号、中号、大号皮肤。"
-                : "已恢复统一皮肤（\(next.theme.displayName)）。"
+                ? L10n.tr("appearance.skin.toggle_on", language: appearance.language)
+                : L10n.fmt("appearance.skin.toggle_off", language: appearance.language, next.theme.displayName)
         )
     }
 
@@ -231,14 +270,26 @@ final class NowPlayingAppModel: ObservableObject {
             next.setTheme(theme, for: sizeClass)
             saveAppearance(
                 next,
-                statusMessage: "已将「\(sizeClass.displayName)」小组件切换为「\(theme.displayName)」。"
+                statusMessage: L10n.fmt(
+                    "appearance.skin.switched_size",
+                    language: appearance.language,
+                    sizeClass.displayName,
+                    theme.displayName
+                )
             )
         } else {
             guard appearance.theme != theme || appearance.usesPerSizeThemes else { return }
-            next = WidgetAppearance(theme: theme)
+            next.theme = theme
+            next.smallTheme = nil
+            next.mediumTheme = nil
+            next.largeTheme = nil
             saveAppearance(
                 next,
-                statusMessage: "已切换为「\(theme.displayName)」皮肤，正在请求刷新小组件。"
+                statusMessage: L10n.fmt(
+                    "appearance.skin.switched_all",
+                    language: appearance.language,
+                    theme.displayName
+                )
             )
         }
     }
@@ -251,22 +302,27 @@ final class NowPlayingAppModel: ObservableObject {
             WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
-            message = "保存皮肤设置失败: \(error.localizedDescription)"
+            message = L10n.fmt("appearance.skin.save_failed", language: appearance.language, error.localizedDescription)
         }
     }
 
     var sourceName: String {
-        NowPlayingSource.displayName(for: snapshot.sourceBundleID)
-            ?? (snapshot.isIdle ? "等待音乐播放" : "未知播放器")
+        NowPlayingSource.displayName(for: snapshot.sourceBundleID, language: appearance.language)
+            ?? (snapshot.isIdle
+                ? L10n.tr("status.waiting_music", language: appearance.language)
+                : L10n.tr("status.unknown_player", language: appearance.language))
     }
 
     var playbackStateText: String {
-        if snapshot.isIdle { return "未检测到音乐" }
-        return snapshot.isPlaying ? "播放中" : "已暂停"
+        if snapshot.isIdle { return L10n.tr("status.no_music", language: appearance.language) }
+        return L10n.tr(snapshot.isPlaying ? "status.playing" : "status.paused", language: appearance.language)
     }
 
     var cliStatusText: String {
-        NowPlayingCLI.executableURL == nil ? "未找到内置 nowplaying-cli" : "内置 nowplaying-cli 可用"
+        L10n.tr(
+            NowPlayingCLI.executableURL == nil ? "status.cli.missing" : "status.cli.available",
+            language: appearance.language
+        )
     }
 
     var cliStatusIsHealthy: Bool {
@@ -325,7 +381,7 @@ final class NowPlayingAppModel: ObservableObject {
     }
 
     var currentVersionText: String {
-        "当前版本 v\(AppUpdater.currentVersionString)"
+        L10n.fmt("update.current_version", language: appearance.language, AppUpdater.currentVersionString)
     }
 
     func checkForUpdates() {
@@ -354,7 +410,7 @@ final class NowPlayingAppModel: ObservableObject {
 
     func installUpdate(_ release: ReleaseInfo) {
         guard !updateStatus.isBusy else { return }
-        updateStatus = .installing(release, "正在准备下载…")
+        updateStatus = .installing(release, L10n.tr("update.stage.preparing", language: appearance.language))
 
         Task { [weak self] in
             guard let self else { return }
@@ -400,10 +456,10 @@ final class NowPlayingAppModel: ObservableObject {
             try writeIdleArtwork(data)
             hasIdleArtwork = true
             artworkRevision += 1
-            message = "静止图片已更新。"
+            message = L10n.tr("appearance.idle.updated", language: appearance.language)
             WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
         } catch {
-            message = "保存图片失败: \(error.localizedDescription)"
+            message = L10n.fmt("appearance.idle.save_failed", language: appearance.language, error.localizedDescription)
         }
     }
 
@@ -414,7 +470,7 @@ final class NowPlayingAppModel: ObservableObject {
         }
         hasIdleArtwork = false
         artworkRevision += 1
-        message = "已恢复默认音乐图标。"
+        message = L10n.tr("appearance.idle.restored", language: appearance.language)
         WidgetCenter.shared.reloadTimelines(ofKind: NowPlayingShared.widgetKind)
     }
 
@@ -475,13 +531,17 @@ struct WidgetSyncReport {
     mutating func record(_ event: WidgetSyncEvent) {
         switch event {
         case let .read(snapshot):
-            read = .done(snapshot.isIdle ? "未检测到支持的播放器，使用待机画面" : "已读取：\(snapshot.title)")
+            read = .done(
+                snapshot.isIdle
+                    ? L10n.tr("status.sync.read.idle")
+                    : L10n.fmt("status.sync.read.track", snapshot.title)
+            )
             write = .running
         case .written:
-            write = .done("已写入小组件数据")
+            write = .done(L10n.tr("status.sync.write.done"))
             request = .running
         case .reloadRequested:
-            request = .done("已请求更新，实际显示由 macOS 调度")
+            request = .done(L10n.tr("status.sync.request.done"))
             isInProgress = false
         case let .readFailed(detail):
             read = .failed(detail)
@@ -501,22 +561,23 @@ struct MainWindowView: View {
     @State private var selectedTab = MainTab.overview
 
     var body: some View {
+        let lang = model.appearance.language
         TabView(selection: $selectedTab) {
             OverviewPage(model: model)
                 .tabItem {
-                    Label("概览", systemImage: "music.note")
+                    Label(L10n.tr("nav.overview", language: lang), systemImage: "music.note")
                 }
                 .tag(MainTab.overview)
 
             AppearancePage(model: model)
                 .tabItem {
-                    Label("外观", systemImage: "photo")
+                    Label(L10n.tr("nav.appearance", language: lang), systemImage: "photo")
                 }
                 .tag(MainTab.appearance)
 
-            HelpPage()
+            HelpPage(language: lang)
                 .tabItem {
-                    Label("帮助", systemImage: "questionmark.circle")
+                    Label(L10n.tr("nav.help", language: lang), systemImage: "questionmark.circle")
                 }
                 .tag(MainTab.help)
         }
@@ -535,12 +596,13 @@ private struct OverviewPage: View {
     @ObservedObject var model: NowPlayingAppModel
 
     var body: some View {
+        let lang = model.appearance.language
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Now Playing Widget")
                         .font(.largeTitle.bold())
-                    Text("桌面小组件的控制台。保持这个 App 运行，小组件就会同步当前播放信息。")
+                    Text(L10n.tr("overview.subtitle", language: lang))
                         .foregroundStyle(.secondary)
                 }
 
@@ -548,8 +610,11 @@ private struct OverviewPage: View {
 
                 HStack(spacing: 12) {
                     ActionCard(
-                        title: model.widgetSyncReport?.isInProgress == true ? "同步中…" : "同步小组件",
-                        subtitle: "读取歌曲、写入数据并请求更新",
+                        title: L10n.tr(
+                            model.widgetSyncReport?.isInProgress == true ? "overview.sync.in_progress" : "overview.sync.title",
+                            language: lang
+                        ),
+                        subtitle: L10n.tr("overview.sync.subtitle", language: lang),
                         systemImage: "arrow.clockwise"
                     ) {
                         model.syncWidget()
@@ -568,8 +633,8 @@ private struct OverviewPage: View {
                     .accessibilityIdentifier("checkForUpdates")
 
                     ActionCard(
-                        title: "打开数据目录",
-                        subtitle: "查看共享 JSON 和封面文件",
+                        title: L10n.tr("overview.folder.title", language: lang),
+                        subtitle: L10n.tr("overview.folder.subtitle", language: lang),
                         systemImage: "folder"
                     ) {
                         model.openDataFolder()
@@ -581,9 +646,9 @@ private struct OverviewPage: View {
 
                 if let report = model.widgetSyncReport {
                     VStack(alignment: .leading, spacing: 6) {
-                        syncRow("读取播放信息", step: report.read)
-                        syncRow("写入数据", step: report.write)
-                        syncRow("请求刷新", step: report.request)
+                        syncRow(L10n.tr("overview.step.read", language: lang), step: report.read)
+                        syncRow(L10n.tr("overview.step.write", language: lang), step: report.write)
+                        syncRow(L10n.tr("overview.step.request", language: lang), step: report.request)
                     }
                 }
             }
@@ -591,15 +656,16 @@ private struct OverviewPage: View {
     }
 
     private var updateButtonTitle: String {
+        let lang = model.appearance.language
         switch model.updateStatus {
         case .checking:
-            return "检查中…"
+            return L10n.tr("update.action.checking", language: lang)
         case .installing:
-            return "更新中…"
+            return L10n.tr("update.action.installing", language: lang)
         case let .available(release):
-            return "可更新 \(release.tagName)"
+            return L10n.fmt("update.action.available", language: lang, release.tagName)
         default:
-            return "检查更新"
+            return L10n.tr("update.action.check", language: lang)
         }
     }
 
@@ -616,6 +682,7 @@ private struct OverviewPage: View {
 
     @ViewBuilder
     private var updateStatusSection: some View {
+        let lang = model.appearance.language
         switch model.updateStatus {
         case .idle:
             EmptyView()
@@ -624,7 +691,7 @@ private struct OverviewPage: View {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text("正在从 GitHub Releases 检查最新版本…")
+                Text(L10n.tr("update.checking_banner", language: lang))
                     .foregroundStyle(.secondary)
             }
             .font(.callout)
@@ -633,7 +700,7 @@ private struct OverviewPage: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text("当前已是最新版本（v\(version)）。")
+                Text(L10n.fmt("update.up_to_date_banner", language: lang, version))
                     .foregroundStyle(.secondary)
             }
             .font(.callout)
@@ -642,6 +709,7 @@ private struct OverviewPage: View {
             UpdateReleaseCard(
                 release: release,
                 stageText: nil,
+                language: lang,
                 onInstall: { model.installUpdate(release) },
                 onOpenPage: { model.openReleaseURL(release.htmlURL) }
             )
@@ -650,6 +718,7 @@ private struct OverviewPage: View {
             UpdateReleaseCard(
                 release: release,
                 stageText: stage,
+                language: lang,
                 onInstall: {},
                 onOpenPage: { model.openReleaseURL(release.htmlURL) }
             )
@@ -662,7 +731,7 @@ private struct OverviewPage: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
-                Button("打开 Releases 页面") {
+                Button(L10n.tr("update.open_releases", language: lang)) {
                     model.openReleaseURL()
                 }
                 .controlSize(.small)
@@ -674,13 +743,14 @@ private struct OverviewPage: View {
     }
 
     private func syncRow(_ title: String, step: WidgetSyncReport.Step) -> some View {
+        let lang = model.appearance.language
         let (icon, detail, color): (String, String, Color)
         switch step {
-        case .waiting: (icon, detail, color) = ("circle", "等待中", .secondary)
-        case .running: (icon, detail, color) = ("clock", "进行中…", .secondary)
-        case .skipped: (icon, detail, color) = ("minus.circle", "未执行", .secondary)
+        case .waiting: (icon, detail, color) = ("circle", L10n.tr("status.sync.step.waiting", language: lang), .secondary)
+        case .running: (icon, detail, color) = ("clock", L10n.tr("status.sync.step.running", language: lang), .secondary)
+        case .skipped: (icon, detail, color) = ("minus.circle", L10n.tr("status.sync.step.skipped", language: lang), .secondary)
         case let .done(text): (icon, detail, color) = ("checkmark.circle.fill", text, .green)
-        case let .failed(text): (icon, detail, color) = ("exclamationmark.circle.fill", "失败：\(text)", .orange)
+        case let .failed(text): (icon, detail, color) = ("exclamationmark.circle.fill", L10n.fmt("status.sync.step.failed", language: lang, text), .orange)
         }
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: icon)
@@ -754,17 +824,15 @@ private struct StatusCard: View {
     }
 
     private var lastRefreshText: String {
+        let lang = model.appearance.language
         guard let date = model.lastRefreshDate else {
-            return "尚未读取播放信息"
+            return L10n.tr("overview.last_read.none", language: lang)
         }
-        return "上次读取：\(Self.formatter.localizedString(for: date, relativeTo: Date()))"
-    }
-
-    private static let formatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return formatter
-    }()
+        formatter.locale = L10n.locale(for: lang)
+        return L10n.fmt("overview.last_read.format", language: lang, formatter.localizedString(for: date, relativeTo: Date()))
+    }
 }
 
 private struct AppearancePage: View {
@@ -772,22 +840,23 @@ private struct AppearancePage: View {
     @State private var selectedSizeClass: WidgetSizeClass = .medium
 
     var body: some View {
+        let lang = model.appearance.language
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("外观")
+                    Text(L10n.tr("appearance.title", language: lang))
                         .font(.largeTitle.bold())
-                    Text("选择桌面小组件皮肤，或自定义未播放音乐时显示的静止图片。")
+                    Text(L10n.tr("appearance.subtitle", language: lang))
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("小组件皮肤")
+                        Text(L10n.tr("appearance.skin.title", language: lang))
                             .font(.title3.bold())
                         Spacer(minLength: 0)
                         Toggle(
-                            "按尺寸分别设置",
+                            L10n.tr("appearance.skin.per_size", language: lang),
                             isOn: Binding(
                                 get: { model.isPerSizeThemeEnabled },
                                 set: { model.setPerSizeThemeEnabled($0) }
@@ -798,10 +867,17 @@ private struct AppearancePage: View {
                     }
 
                     if model.isPerSizeThemeEnabled {
-                        Picker("小组件尺寸", selection: $selectedSizeClass) {
+                        Picker(L10n.tr("appearance.skin.size_picker", language: lang), selection: $selectedSizeClass) {
                             ForEach(WidgetSizeClass.allCases) { sizeClass in
-                                Text("\(sizeClass.displayName)（\(model.theme(for: sizeClass).displayName)）")
-                                    .tag(sizeClass)
+                                Text(
+                                    L10n.fmt(
+                                        "appearance.skin.size_picker_option",
+                                        language: lang,
+                                        sizeClass.displayName,
+                                        model.theme(for: sizeClass).displayName
+                                    )
+                                )
+                                .tag(sizeClass)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -819,14 +895,17 @@ private struct AppearancePage: View {
                             ) {
                                 model.selectTheme(theme, for: activeSize)
                             }
-                            .id("\(theme.rawValue)-\(model.artworkRevision)")
+                            .id("\(theme.rawValue)-\(model.artworkRevision)-\(lang.rawValue)")
                         }
                     }
 
                     Text(
-                        model.isPerSizeThemeEnabled
-                            ? "已开启按尺寸设置：可分别为桌面上的小号、中号、大号小组件指定不同皮肤。"
-                            : "当前所有尺寸共用同一套皮肤；开启右上角「按尺寸分别设置」可给小 / 中 / 大号单独选皮肤。"
+                        L10n.tr(
+                            model.isPerSizeThemeEnabled
+                                ? "appearance.skin.per_size_hint_on"
+                                : "appearance.skin.per_size_hint_off",
+                            language: lang
+                        )
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -839,23 +918,23 @@ private struct AppearancePage: View {
                         .id(model.artworkRevision)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("静止状态图片")
+                        Text(L10n.tr("appearance.idle.title", language: lang))
                             .font(.title3.bold())
-                        Text("未检测到音乐时，小组件会优先显示这里设置的图片；不设置则使用默认音乐图标。")
+                        Text(L10n.tr("appearance.idle.subtitle", language: lang))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
                         HStack(spacing: 10) {
-                            Button(model.hasIdleArtwork ? "更换图片" : "选择图片") {
+                            Button(L10n.tr(model.hasIdleArtwork ? "appearance.idle.replace" : "appearance.idle.choose", language: lang)) {
                                 model.chooseIdleArtwork()
                             }
-                            Button("删除图片") {
+                            Button(L10n.tr("appearance.idle.remove", language: lang)) {
                                 model.removeIdleArtwork()
                             }
                             .disabled(!model.hasIdleArtwork)
                         }
 
-                        Text(model.hasIdleArtwork ? "当前：已设置自定义图片" : "当前：使用默认图标")
+                        Text(L10n.tr(model.hasIdleArtwork ? "appearance.idle.current_custom" : "appearance.idle.current_default", language: lang))
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -871,14 +950,43 @@ private struct AppearancePage: View {
                 .padding(18)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
 
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.tr("language.title", language: lang))
+                                .font(.headline)
+                            Text(L10n.tr("language.subtitle", language: lang))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        Picker(
+                            L10n.tr("language.title", language: lang),
+                            selection: Binding(
+                                get: { model.appearance.language },
+                                set: { model.selectLanguage($0) }
+                            )
+                        ) {
+                            ForEach(AppLanguage.allCases) { item in
+                                Text(item.displayName).tag(item)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 260)
+                    }
+                }
+                .padding(18)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("数据目录")
+                    Text(L10n.tr("appearance.folder.title", language: lang))
                         .font(.headline)
                     Text(model.supportFolderPath)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
-                    Button("在 Finder 中打开") {
+                    Button(L10n.tr("appearance.folder.open_finder", language: lang)) {
                         model.openDataFolder()
                     }
                 }
@@ -1023,20 +1131,22 @@ private struct ThemeThumbnail: View {
 }
 
 private struct HelpPage: View {
+    let language: AppLanguage
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("帮助")
+                Text(L10n.tr("help.title", language: language))
                     .font(.largeTitle.bold())
-                Text("第一次安装后，可以按这个流程确认小组件已经正常工作。")
+                Text(L10n.tr("help.subtitle", language: language))
                     .foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 14) {
-                HelpRow(number: 1, title: "保持 App 运行", detail: "菜单栏里出现音乐图标后，后台同步服务就已经启动。")
-                HelpRow(number: 2, title: "添加桌面小组件", detail: "在 macOS 的小组件面板中添加“正在播放”。")
-                HelpRow(number: 3, title: "播放音乐并同步", detail: "支持网易云音乐、QQ 音乐、Apple Music 和 Spotify。如需手动同步，前往「概览」点击「同步小组件」；桌面更新时机由 macOS 决定。")
-                HelpRow(number: 4, title: "使用播放控制", detail: "小组件里的上一首、播放暂停、下一首按钮会唤起主 App 执行控制，所以主 App 需要保持运行。")
+                HelpRow(number: 1, title: L10n.tr("help.step1.title", language: language), detail: L10n.tr("help.step1.detail", language: language))
+                HelpRow(number: 2, title: L10n.tr("help.step2.title", language: language), detail: L10n.tr("help.step2.detail", language: language))
+                HelpRow(number: 3, title: L10n.tr("help.step3.title", language: language), detail: L10n.tr("help.step3.detail", language: language))
+                HelpRow(number: 4, title: L10n.tr("help.step4.title", language: language), detail: L10n.tr("help.step4.detail", language: language))
             }
             .padding(18)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -1049,22 +1159,23 @@ private struct HelpPage: View {
 private struct UpdateReleaseCard: View {
     let release: ReleaseInfo
     let stageText: String?
+    let language: AppLanguage
     let onInstall: () -> Void
     let onOpenPage: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
-                Label("发现新版本 \(release.tagName)", systemImage: "sparkles")
+                Label(L10n.fmt("update.new_version_banner", language: language, release.tagName), systemImage: "sparkles")
                     .font(.headline)
 
                 Spacer(minLength: 0)
 
-                Button("查看页面", action: onOpenPage)
+                Button(L10n.tr("update.view_page", language: language), action: onOpenPage)
                     .controlSize(.small)
 
                 if release.dmgURL != nil {
-                    Button("立即更新并重启", action: onInstall)
+                    Button(L10n.tr("update.install_now", language: language), action: onInstall)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                         .disabled(stageText != nil)

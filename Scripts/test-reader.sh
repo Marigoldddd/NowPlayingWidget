@@ -4,6 +4,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/nowplaying-reader-tests.XXXXXX")
 trap 'rm -rf "$WORK_DIR"' EXIT INT TERM
 xcrun swiftc \
+    "$ROOT_DIR/Shared/L10n.swift" \
     "$ROOT_DIR/Shared/NowPlayingShared.swift" \
     "$ROOT_DIR/Shared/PlaybackCommand.swift" \
     "$ROOT_DIR/Shared/NowPlayingCLI.swift" \

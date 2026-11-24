@@ -22,12 +22,14 @@ struct MusicEntry: TimelineEntry {
 
 struct MusicProvider: TimelineProvider {
     func placeholder(in context: Context) -> MusicEntry {
-        MusicEntry(
+        let appearance = NowPlayingShared.loadAppearance()
+        L10n.overrideLanguage = appearance.language
+        return MusicEntry(
             date: Date(),
             snapshot: .empty,
             artworkURL: nil,
             backgroundColor: .defaultIdle,
-            appearance: NowPlayingShared.loadAppearance()
+            appearance: appearance
         )
     }
 
@@ -42,6 +44,7 @@ struct MusicProvider: TimelineProvider {
 
     private func loadEntry() -> MusicEntry {
         let appearance = NowPlayingShared.loadAppearance()
+        L10n.overrideLanguage = appearance.language
         let dataURLs = NowPlayingShared.readableDataURLs()
 
         for dataURL in dataURLs where FileManager.default.fileExists(atPath: dataURL.path) {
@@ -457,7 +460,7 @@ struct NowPlayingWidgetEntryView: View {
                     Image(systemName: "waveform")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.65))
-                    Text("播放音乐后将在此展示歌词海报")
+                    Text(L10n.tr("widget.lyrics.empty_idle", language: entry.appearance.language))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.70))
                 }
@@ -468,7 +471,7 @@ struct NowPlayingWidgetEntryView: View {
                     Image(systemName: "music.quarternote.3")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.65))
-                    Text("纯音乐 · 静静聆听")
+                    Text(L10n.tr("widget.lyrics.instrumental", language: entry.appearance.language))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white.opacity(0.74))
                 }
@@ -1117,8 +1120,8 @@ struct NowPlayingWidgetExtension: Widget {
         ) { entry in
             NowPlayingWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("正在播放")
-        .description("显示当前网易云音乐、QQ 音乐、Apple Music 或 Spotify 的歌曲、歌手、封面和播放状态。")
+        .configurationDisplayName(LocalizedStringResource("widget.display_name"))
+        .description(LocalizedStringResource("widget.description"))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
