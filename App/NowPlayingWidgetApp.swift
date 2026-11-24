@@ -151,6 +151,24 @@ final class MainWindowController {
 }
 
 final class NowPlayingAppModel: ObservableObject {
+    enum UpdateStatus: Equatable {
+        case idle
+        case checking
+        case upToDate(String)
+        case available(ReleaseInfo)
+        case installing(ReleaseInfo, String)
+        case failed(String)
+
+        var isBusy: Bool {
+            switch self {
+            case .checking, .installing:
+                return true
+            default:
+                return false
+            }
+        }
+    }
+
     static let shared = NowPlayingAppModel()
 
     @Published private(set) var snapshot: NowPlayingSnapshot
@@ -161,8 +179,10 @@ final class NowPlayingAppModel: ObservableObject {
     @Published private(set) var artworkRevision = 0
     @Published private(set) var message: String?
     @Published private(set) var widgetSyncReport: WidgetSyncReport?
+    @Published private(set) var updateStatus: UpdateStatus = .idle
 
     private let monitor = NowPlayingMonitor()
+    private let updater = AppUpdater()
     private var hasStarted = false
 
     private init() {
@@ -275,6 +295,9 @@ final class NowPlayingAppModel: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
+        AppUpdater.refreshWidgetExtensionIfUpgraded()
+        WidgetCenter.shared.reloadAllTimelines()
+
         monitor.onSnapshotRead = { [weak self] snapshot in
             self?.snapshot = snapshot
             self?.lastRefreshDate = Date()
@@ -299,6 +322,56 @@ final class NowPlayingAppModel: ObservableObject {
         monitor.syncWidget { [weak self] event in
             self?.widgetSyncReport?.record(event)
         }
+    }
+
+    var currentVersionText: String {
+        "当前版本 v\(AppUpdater.currentVersionString)"
+    }
+
+    func checkForUpdates() {
+        guard !updateStatus.isBusy else { return }
+        updateStatus = .checking
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await updater.checkForUpdates()
+                await MainActor.run {
+                    switch result {
+                    case let .upToDate(version):
+                        self.updateStatus = .upToDate(version)
+                    case let .updateAvailable(release):
+                        self.updateStatus = .available(release)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateStatus = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    func installUpdate(_ release: ReleaseInfo) {
+        guard !updateStatus.isBusy else { return }
+        updateStatus = .installing(release, "正在准备下载…")
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await updater.downloadAndInstall(release: release) { stage in
+                    self.updateStatus = .installing(release, stage)
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateStatus = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    func openReleaseURL(_ url: URL = AppUpdater.releasesPageURL) {
+        NSWorkspace.shared.open(url)
     }
 
     func openDataFolder() {
@@ -462,45 +535,141 @@ private struct OverviewPage: View {
     @ObservedObject var model: NowPlayingAppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Now Playing Widget")
-                    .font(.largeTitle.bold())
-                Text("桌面小组件的控制台。保持这个 App 运行，小组件就会同步当前播放信息。")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Now Playing Widget")
+                        .font(.largeTitle.bold())
+                    Text("桌面小组件的控制台。保持这个 App 运行，小组件就会同步当前播放信息。")
+                        .foregroundStyle(.secondary)
+                }
+
+                StatusCard(model: model)
+
+                HStack(spacing: 12) {
+                    ActionCard(
+                        title: model.widgetSyncReport?.isInProgress == true ? "同步中…" : "同步小组件",
+                        subtitle: "读取歌曲、写入数据并请求更新",
+                        systemImage: "arrow.clockwise"
+                    ) {
+                        model.syncWidget()
+                    }
+                    .disabled(model.widgetSyncReport?.isInProgress == true)
+                    .accessibilityIdentifier("syncWidget")
+
+                    ActionCard(
+                        title: updateButtonTitle,
+                        subtitle: model.currentVersionText,
+                        systemImage: updateButtonIcon
+                    ) {
+                        model.checkForUpdates()
+                    }
+                    .disabled(model.updateStatus.isBusy)
+                    .accessibilityIdentifier("checkForUpdates")
+
+                    ActionCard(
+                        title: "打开数据目录",
+                        subtitle: "查看共享 JSON 和封面文件",
+                        systemImage: "folder"
+                    ) {
+                        model.openDataFolder()
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+
+                updateStatusSection
+
+                if let report = model.widgetSyncReport {
+                    VStack(alignment: .leading, spacing: 6) {
+                        syncRow("读取播放信息", step: report.read)
+                        syncRow("写入数据", step: report.write)
+                        syncRow("请求刷新", step: report.request)
+                    }
+                }
+            }
+        }
+    }
+
+    private var updateButtonTitle: String {
+        switch model.updateStatus {
+        case .checking:
+            return "检查中…"
+        case .installing:
+            return "更新中…"
+        case let .available(release):
+            return "可更新 \(release.tagName)"
+        default:
+            return "检查更新"
+        }
+    }
+
+    private var updateButtonIcon: String {
+        switch model.updateStatus {
+        case .available:
+            return "sparkles"
+        case .checking, .installing:
+            return "clock.arrow.circlepath"
+        default:
+            return "arrow.down.circle"
+        }
+    }
+
+    @ViewBuilder
+    private var updateStatusSection: some View {
+        switch model.updateStatus {
+        case .idle:
+            EmptyView()
+
+        case .checking:
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("正在从 GitHub Releases 检查最新版本…")
                     .foregroundStyle(.secondary)
             }
+            .font(.callout)
 
-            StatusCard(model: model)
-
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-                ActionCard(
-                    title: model.widgetSyncReport?.isInProgress == true ? "同步中…" : "同步小组件",
-                    subtitle: "读取歌曲、写入数据并请求更新",
-                    systemImage: "arrow.clockwise"
-                ) {
-                    model.syncWidget()
-                }
-                .disabled(model.widgetSyncReport?.isInProgress == true)
-                .accessibilityIdentifier("syncWidget")
-
-                ActionCard(
-                    title: "打开数据目录",
-                    subtitle: "查看共享 JSON 和封面文件",
-                    systemImage: "folder"
-                ) {
-                    model.openDataFolder()
-                }
+        case let .upToDate(version):
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("当前已是最新版本（v\(version)）。")
+                    .foregroundStyle(.secondary)
             }
+            .font(.callout)
 
-            if let report = model.widgetSyncReport {
-                VStack(alignment: .leading, spacing: 6) {
-                    syncRow("读取播放信息", step: report.read)
-                    syncRow("写入数据", step: report.write)
-                    syncRow("请求刷新", step: report.request)
+        case let .available(release):
+            UpdateReleaseCard(
+                release: release,
+                stageText: nil,
+                onInstall: { model.installUpdate(release) },
+                onOpenPage: { model.openReleaseURL(release.htmlURL) }
+            )
+
+        case let .installing(release, stage):
+            UpdateReleaseCard(
+                release: release,
+                stageText: stage,
+                onInstall: {},
+                onOpenPage: { model.openReleaseURL(release.htmlURL) }
+            )
+
+        case let .failed(detail):
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(detail)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Button("打开 Releases 页面") {
+                    model.openReleaseURL()
                 }
+                .controlSize(.small)
             }
-
-            Spacer(minLength: 0)
+            .font(.callout)
+            .padding(14)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
@@ -877,6 +1046,151 @@ private struct HelpPage: View {
     }
 }
 
+private struct UpdateReleaseCard: View {
+    let release: ReleaseInfo
+    let stageText: String?
+    let onInstall: () -> Void
+    let onOpenPage: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                Label("发现新版本 \(release.tagName)", systemImage: "sparkles")
+                    .font(.headline)
+
+                Spacer(minLength: 0)
+
+                Button("查看页面", action: onOpenPage)
+                    .controlSize(.small)
+
+                if release.dmgURL != nil {
+                    Button("立即更新并重启", action: onInstall)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .disabled(stageText != nil)
+                }
+            }
+
+            if let stageText {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(stageText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if !release.notes.isEmpty {
+                ScrollView {
+                    MarkdownNotesView(markdown: release.notes)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 165)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct MarkdownNotesView: View {
+    let markdown: String
+
+    private enum LineKind {
+        case heading(String)
+        case bullet(indentLevel: Int, text: String)
+        case paragraph(String)
+        case codeBlockLine(String)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(Array(parsedLines.enumerated()), id: \.offset) { _, line in
+                switch line {
+                case let .heading(title):
+                    Text(inlineMarkdown(title))
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                        .padding(.top, 4)
+
+                case let .bullet(indentLevel, text):
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(indentLevel == 0 ? "•" : "◦")
+                            .foregroundStyle(.secondary)
+                        Text(inlineMarkdown(text))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.leading, CGFloat(indentLevel) * 14)
+
+                case let .paragraph(text):
+                    Text(inlineMarkdown(text))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                case let .codeBlockLine(code):
+                    Text(code)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                }
+            }
+        }
+        .textSelection(.enabled)
+    }
+
+    private var parsedLines: [LineKind] {
+        var result: [LineKind] = []
+        var inCodeBlock = false
+
+        for rawLine in markdown.components(separatedBy: .newlines) {
+            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("```") {
+                inCodeBlock.toggle()
+                continue
+            }
+            if inCodeBlock {
+                if !trimmed.isEmpty {
+                    result.append(.codeBlockLine(rawLine))
+                }
+                continue
+            }
+            guard !trimmed.isEmpty else { continue }
+
+            if trimmed.hasPrefix("#") {
+                let heading = trimmed.drop(while: { $0 == "#" || $0 == " " })
+                if !heading.isEmpty {
+                    result.append(.heading(String(heading)))
+                }
+                continue
+            }
+
+            let leadingSpaces = rawLine.prefix(while: { $0 == " " || $0 == "\t" }).count
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                let content = String(trimmed.dropFirst(2))
+                result.append(.bullet(indentLevel: leadingSpaces >= 2 ? 1 : 0, text: content))
+                continue
+            }
+
+            result.append(.paragraph(trimmed))
+        }
+        return result
+    }
+
+    private func inlineMarkdown(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+}
+
 private struct ActionCard: View {
     let title: String
     let subtitle: String
@@ -900,9 +1214,10 @@ private struct ActionCard: View {
                 Spacer(minLength: 0)
             }
             .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .buttonStyle(.plain)
     }
 }

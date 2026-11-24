@@ -174,7 +174,30 @@ struct NowPlayingReaderTests {
             "Dancing under the neon light",
             "Never gonna let you fade away",
         ])
-        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes, deep links, zero-process idle, bilingual lyrics, chorus scoring")
+
+        precondition(SemanticVersion("v1.0.18")! > SemanticVersion("1.0.9")!)
+        precondition(SemanticVersion("1.0.18") == SemanticVersion("v1.0.18.0"))
+        precondition(AppUpdater.isTrustedDownloadURL(URL(string: "https://github.com/Marigoldddd/NowPlayingWidget/releases/download/v1.0.18/app.dmg")!))
+        precondition(!AppUpdater.isTrustedDownloadURL(URL(string: "https://evil.example.com/app.dmg")!))
+
+        let sampleReleaseJSON = """
+        {
+          "tag_name": "v1.0.18",
+          "html_url": "https://github.com/Marigoldddd/NowPlayingWidget/releases/tag/v1.0.18",
+          "body": "Bug fixes",
+          "assets": [
+            {
+              "name": "NowPlayingWidget-v1.0.18-macOS-universal.dmg",
+              "browser_download_url": "https://github.com/Marigoldddd/NowPlayingWidget/releases/download/v1.0.18/NowPlayingWidget-v1.0.18-macOS-universal.dmg"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+        let parsedRelease = try AppUpdater.parseRelease(from: sampleReleaseJSON)
+        precondition(parsedRelease.version == SemanticVersion("1.0.18"))
+        precondition(parsedRelease.dmgName == "NowPlayingWidget-v1.0.18-macOS-universal.dmg")
+        precondition(parsedRelease.dmgURL != nil)
+        print("PASS: QQ Music metadata/artwork, pause, missing fields, existing players, unsupported source, malformed output, themes, deep links, zero-process idle, bilingual lyrics, chorus scoring, updater")
         try WidgetSyncPipelineTests.run()
     }
 }

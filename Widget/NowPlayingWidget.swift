@@ -99,26 +99,36 @@ struct NowPlayingWidgetEntryView: View {
     }
 
     var body: some View {
-        Group {
-            switch (activeTheme, family) {
-            case (.classic, .systemSmall):
-                smallLayout
-            case (.classic, .systemLarge):
-                largeLayout
-            case (.classic, _):
-                mediumLayout
-            case (.vinyl, .systemSmall):
-                vinylSmallLayout
-            case (.vinyl, .systemLarge):
-                vinylLargeLayout
-            case (.vinyl, _):
-                vinylMediumLayout
-            case (.poster, .systemSmall):
-                posterSmallLayout
-            case (.poster, .systemLarge):
-                posterLargeLayout
-            case (.poster, _):
-                posterMediumLayout
+        ZStack {
+            if activeTheme == .poster {
+                PosterBackground(
+                    artworkURL: entry.artworkURL,
+                    fallbackColor: entry.backgroundColor
+                )
+                .ignoresSafeArea()
+            }
+
+            Group {
+                switch (activeTheme, family) {
+                case (.classic, .systemSmall):
+                    smallLayout
+                case (.classic, .systemLarge):
+                    largeLayout
+                case (.classic, _):
+                    mediumLayout
+                case (.vinyl, .systemSmall):
+                    vinylSmallLayout
+                case (.vinyl, .systemLarge):
+                    vinylLargeLayout
+                case (.vinyl, _):
+                    vinylMediumLayout
+                case (.poster, .systemSmall):
+                    posterSmallLayout
+                case (.poster, .systemLarge):
+                    posterLargeLayout
+                case (.poster, _):
+                    posterMediumLayout
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -978,30 +988,82 @@ struct PosterBackground: View {
         ZStack {
             if let artworkURL, let image = NSImage(contentsOf: artworkURL) {
                 GeometryReader { proxy in
-                    posterImage(image)
+                    posterImage(compositedPosterImage(from: image) ?? image)
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
                 }
-
-                LinearGradient(
-                    colors: [
-                        .black.opacity(0.10),
-                        .black.opacity(0.34),
-                        .black.opacity(0.82)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                LinearGradient(
-                    colors: [.black.opacity(0.38), .clear],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            } else {
+            } else if renderingMode != .accented {
                 CardBackground(backgroundColor: fallbackColor)
             }
         }
+    }
+
+    /// Bakes the dark readability scrim directly into the image so accented/transparent
+    /// widget mode renders the full-bleed poster with identical contrast and never washes
+    /// out a separate SwiftUI gradient overlay.
+    private func compositedPosterImage(from image: NSImage) -> NSImage? {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+        let width = min(max(cgImage.width, 1), 640)
+        let height = min(max(cgImage.height, 1), 640)
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width * 4,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else {
+            return nil
+        }
+
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        context.interpolationQuality = .high
+        context.draw(cgImage, in: rect)
+
+        // Vertical scrim: lighter at top (CoreGraphics y=height), darker at bottom (y=0).
+        let verticalColors = [
+            CGColor(red: 0, green: 0, blue: 0, alpha: 0.78),
+            CGColor(red: 0, green: 0, blue: 0, alpha: 0.34),
+            CGColor(red: 0, green: 0, blue: 0, alpha: 0.14),
+        ] as CFArray
+        let verticalLocations: [CGFloat] = [0.0, 0.52, 1.0]
+        if let gradient = CGGradient(
+            colorsSpace: colorSpace,
+            colors: verticalColors,
+            locations: verticalLocations
+        ) {
+            context.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: CGFloat(height)),
+                options: []
+            )
+        }
+
+        // Subtle left-to-right scrim for text readability.
+        let horizontalColors = [
+            CGColor(red: 0, green: 0, blue: 0, alpha: 0.34),
+            CGColor(red: 0, green: 0, blue: 0, alpha: 0.0),
+        ] as CFArray
+        if let gradient = CGGradient(
+            colorsSpace: colorSpace,
+            colors: horizontalColors,
+            locations: [0.0, 1.0]
+        ) {
+            context.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: CGFloat(width), y: 0),
+                options: []
+            )
+        }
+
+        guard let output = context.makeImage() else { return nil }
+        return NSImage(cgImage: output, size: NSSize(width: width, height: height))
     }
 
     @ViewBuilder
@@ -1028,12 +1090,10 @@ struct WidgetBackground: ViewModifier {
     @ViewBuilder
     private var backgroundView: some View {
         switch theme {
-        case .classic:
+        case .classic, .poster:
             CardBackground(backgroundColor: entry.backgroundColor)
         case .vinyl:
             VinylCardBackground(backgroundColor: entry.backgroundColor)
-        case .poster:
-            PosterBackground(artworkURL: entry.artworkURL, fallbackColor: entry.backgroundColor)
         }
     }
 
