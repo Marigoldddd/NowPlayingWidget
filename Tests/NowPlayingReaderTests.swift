@@ -232,12 +232,18 @@ struct NowPlayingReaderTests {
             backgroundBlue: 0
         )
 
-        precondition(!store.record(snapshot: songA, artworkURL: nil, at: t0))
-        precondition(!store.record(snapshot: songA, artworkURL: nil, at: t0.addingTimeInterval(5)))
-        precondition(store.record(snapshot: songA, artworkURL: nil, at: t0.addingTimeInterval(11)))
+        precondition(!store.record(snapshot: songA, artworkData: nil, at: t0))
+        precondition(!store.record(snapshot: songA, artworkData: nil, at: t0.addingTimeInterval(5)))
+        precondition(store.record(snapshot: songA, artworkData: cover, at: t0.addingTimeInterval(11)))
         // Rapid skip on songB (<10s) should not commit a play
-        precondition(!store.record(snapshot: songB, artworkURL: nil, at: t0.addingTimeInterval(20)))
-        precondition(store.record(snapshot: songB, artworkURL: nil, at: t0.addingTimeInterval(32)))
+        precondition(!store.record(snapshot: songB, artworkData: nil, at: t0.addingTimeInterval(20)))
+        precondition(store.record(snapshot: songB, artworkData: blueCover, at: t0.addingTimeInterval(32)))
+
+        let songAHash = store.database.entries.first(where: { $0.title == "運命の人" })?.artworkHash
+        let songBHash = store.database.entries.first(where: { $0.title == "Cruel Summer" })?.artworkHash
+        precondition(songAHash != nil && songBHash != nil && songAHash != songBHash)
+        precondition(store.artworkURL(for: songAHash) != nil)
+        precondition(store.artworkURL(for: songBHash) != nil)
 
         let summary = store.stats(for: .all, now: t0.addingTimeInterval(40), language: .zhHans)
         precondition(summary.playCount == 2)

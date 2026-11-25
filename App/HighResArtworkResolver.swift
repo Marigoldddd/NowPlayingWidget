@@ -82,6 +82,22 @@ final class HighResArtworkResolver {
         return nil
     }
 
+    func fetchArtwork(
+        sourceBundleID: String,
+        title: String,
+        artist: String,
+        album: String
+    ) async -> Data? {
+        guard !title.isEmpty, title != "未知歌曲", title != "Unknown Song" else { return nil }
+        let key = CacheKey(
+            sourceBundleID: sourceBundleID,
+            title: title,
+            artist: artist,
+            album: album
+        )
+        return await searchArtwork(key: key, referenceThumbnail: nil)
+    }
+
     func isHighResolution(_ data: Data) -> Bool {
         guard let image = NSImage(data: data),
               let rep = image.representations.first else {

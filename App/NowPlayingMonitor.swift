@@ -37,7 +37,7 @@ final class NowPlayingMonitor {
     private var pausedSince: Date?
     private var currentInterval: TimeInterval = RefreshPolicy.activeInterval
     private var isStarted = false
-    var onSnapshotRead: ((NowPlayingSnapshot) -> Void)?
+    var onSnapshotRead: ((NowPlayingSnapshot, Data?) -> Void)?
     var onSnapshotWritten: (() -> Void)?
     var onRefreshError: ((String) -> Void)?
 
@@ -95,12 +95,17 @@ final class NowPlayingMonitor {
     ) {
         pendingSyncs += 1
         syncQueue.async { [self] in
+            var latestArtworkData: Data?
+            pipeline.onReadResult = { result in
+                latestArtworkData = result.artworkData
+            }
             pipeline.sync(forceWrite: forceWrite) { event in
+                let capturedArtworkData = latestArtworkData
                 DispatchQueue.main.async { [self] in
                     switch event {
                     case let .read(snapshot):
                         updateRefreshSchedule(for: snapshot)
-                        onSnapshotRead?(snapshot)
+                        onSnapshotRead?(snapshot, capturedArtworkData)
                     case let .readFailed(detail), let .writeFailed(detail):
                         onRefreshError?(detail)
                     case .written:

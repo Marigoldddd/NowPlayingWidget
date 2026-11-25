@@ -41,8 +41,14 @@ struct DailyListeningBucket: Codable, Equatable {
 struct ListeningHistoryDatabase: Codable, Equatable {
     var entries: [PlaybackHistoryEntry]
     var dailyBuckets: [String: DailyListeningBucket]
+    var artworkCacheVersion: Int?
 
-    static let empty = ListeningHistoryDatabase(entries: [], dailyBuckets: [:])
+    static let currentArtworkCacheVersion = 2
+    static let empty = ListeningHistoryDatabase(
+        entries: [],
+        dailyBuckets: [:],
+        artworkCacheVersion: currentArtworkCacheVersion
+    )
 }
 
 struct PlayerDistributionItem: Identifiable, Equatable {
@@ -116,6 +122,7 @@ final class ListeningHistoryStore {
         var accumulatedSeconds: TimeInterval
         var committedEntryID: UUID?
         var artworkHash: String?
+        var lastArtworkDigest: String?
     }
 
     private let directoryURL: URL
@@ -152,13 +159,25 @@ final class ListeningHistoryStore {
         var cal = calendar
         cal.firstWeekday = 2 // Monday
         self.calendar = cal
-        self.database = Self.loadDatabase(from: historyFileURL)
+        var loaded = Self.loadDatabase(from: historyFileURL)
+        if (loaded.artworkCacheVersion ?? 1) < ListeningHistoryDatabase.currentArtworkCacheVersion {
+            try? FileManager.default.removeItem(at: artworkCacheDirectoryURL)
+            for idx in loaded.entries.indices {
+                loaded.entries[idx].artworkHash = nil
+            }
+            loaded.artworkCacheVersion = ListeningHistoryDatabase.currentArtworkCacheVersion
+            self.database = loaded
+            self.isDirty = true
+            saveDatabase(at: Date())
+        } else {
+            self.database = loaded
+        }
     }
 
     @discardableResult
     func record(
         snapshot: NowPlayingSnapshot,
-        artworkURL: URL?,
+        artworkData: Data?,
         at now: Date = Date()
     ) -> Bool {
         let isValidTrack = !snapshot.sourceBundleID.isEmpty
@@ -205,12 +224,17 @@ final class ListeningHistoryStore {
                 }
             }
             current.lastTickAt = now
-            if current.artworkHash == nil, let artworkURL {
-                current.artworkHash = cacheArtworkIfNeeded(from: artworkURL, trackKey: trackKey)
-                if let entryID = current.committedEntryID,
-                   let hash = current.artworkHash,
-                   let index = database.entries.firstIndex(where: { $0.id == entryID }) {
-                    database.entries[index].artworkHash = hash
+            if let artworkData {
+                let dataDigest = Self.shortDigest(artworkData)
+                if current.lastArtworkDigest != dataDigest,
+                   let hash = cacheArtwork(from: artworkData, trackKey: trackKey) {
+                    current.artworkHash = hash
+                    current.lastArtworkDigest = dataDigest
+                    if let entryID = current.committedEntryID,
+                       let index = database.entries.firstIndex(where: { $0.id == entryID }) {
+                        database.entries[index].artworkHash = hash
+                    }
+                    isDirty = true
                 }
             }
 
@@ -221,7 +245,8 @@ final class ListeningHistoryStore {
             }
             activeSession = current
         } else {
-            let artworkHash = artworkURL.flatMap { cacheArtworkIfNeeded(from: $0, trackKey: trackKey) }
+            let dataDigest = artworkData.map(Self.shortDigest)
+            let artworkHash = artworkData.flatMap { cacheArtwork(from: $0, trackKey: trackKey) }
             var next = ActiveSession(
                 trackKey: trackKey,
                 title: snapshot.title,
@@ -232,7 +257,8 @@ final class ListeningHistoryStore {
                 lastTickAt: now,
                 accumulatedSeconds: 0,
                 committedEntryID: nil,
-                artworkHash: artworkHash
+                artworkHash: artworkHash,
+                lastArtworkDigest: artworkHash != nil ? dataDigest : nil
             )
             if commitThresholdSeconds <= 0 {
                 next.committedEntryID = commitSession(&next, at: now)
@@ -251,6 +277,62 @@ final class ListeningHistoryStore {
             return
         }
         saveDatabase(at: now)
+    }
+
+    func backfillMissingArtwork(
+        using resolver: HighResArtworkResolver = HighResArtworkResolver(),
+        onUpdate: @escaping @MainActor () -> Void
+    ) {
+        var targets: [(trackKey: String, title: String, artist: String, album: String, sourceBundleID: String)] = []
+        var seenKeys = Set<String>()
+        for entry in database.entries where entry.artworkHash == nil {
+            let trackKey = Self.makeTrackKey(
+                title: entry.title,
+                artist: entry.artist,
+                sourceBundleID: entry.sourceBundleID
+            )
+            guard seenKeys.insert(trackKey).inserted else { continue }
+            targets.append((trackKey, entry.title, entry.artist, entry.album, entry.sourceBundleID))
+            if targets.count >= 30 { break }
+        }
+        guard !targets.isEmpty else { return }
+
+        Task.detached(priority: .utility) { [weak self] in
+            for item in targets {
+                guard let data = await resolver.fetchArtwork(
+                    sourceBundleID: item.sourceBundleID,
+                    title: item.title,
+                    artist: item.artist,
+                    album: item.album
+                ) else { continue }
+
+                await MainActor.run { [weak self] in
+                    guard let self,
+                          let hash = self.cacheArtwork(from: data, trackKey: item.trackKey) else {
+                        return
+                    }
+                    var updated = false
+                    for index in self.database.entries.indices {
+                        let entry = self.database.entries[index]
+                        guard entry.artworkHash == nil,
+                              Self.makeTrackKey(
+                                  title: entry.title,
+                                  artist: entry.artist,
+                                  sourceBundleID: entry.sourceBundleID
+                              ) == item.trackKey else {
+                            continue
+                        }
+                        self.database.entries[index].artworkHash = hash
+                        updated = true
+                    }
+                    if updated {
+                        self.isDirty = true
+                        self.flushIfNeeded(force: true)
+                        onUpdate()
+                    }
+                }
+            }
+        }
     }
 
     func clearHistory() {
@@ -610,14 +692,15 @@ final class ListeningHistoryStore {
         "\(sourceBundleID)|\(title.lowercased())|\(artist.lowercased())"
     }
 
-    private func cacheArtworkIfNeeded(from sourceURL: URL, trackKey: String) -> String? {
-        let digest = SHA256.hash(data: Data(trackKey.utf8))
-        let hash = digest.prefix(8).map { String(format: "%02x", $0) }.joined()
+    private static func shortDigest(_ data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.prefix(8).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func cacheArtwork(from artworkData: Data, trackKey: String) -> String? {
+        let hash = Self.shortDigest(Data(trackKey.utf8))
         let destination = artworkCacheDirectoryURL.appendingPathComponent("\(hash).jpg")
-        if FileManager.default.fileExists(atPath: destination.path) {
-            return hash
-        }
-        guard let image = NSImage(contentsOf: sourceURL),
+        guard let image = NSImage(data: artworkData),
               let jpegData = Self.thumbnailJPEGData(from: image, size: 96) else {
             return nil
         }

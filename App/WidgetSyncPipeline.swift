@@ -14,6 +14,7 @@ final class WidgetSyncPipeline {
     private let containers: () -> [URL]
     private let requestReload: () -> Void
     private var lastWritten: NowPlayingReadResult?
+    var onReadResult: ((NowPlayingReadResult) -> Void)?
 
     init(
         read: @escaping () throws -> NowPlayingReadResult,
@@ -33,6 +34,7 @@ final class WidgetSyncPipeline {
             onEvent(.readFailed(error.localizedDescription))
             return
         }
+        onReadResult?(result)
         onEvent(.read(result.snapshot))
 
         guard forceWrite || !matchesLastWrite(result) else { return }

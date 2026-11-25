@@ -360,12 +360,12 @@ final class NowPlayingAppModel: ObservableObject {
         AppUpdater.refreshWidgetExtensionIfUpgraded()
         WidgetCenter.shared.reloadAllTimelines()
 
-        monitor.onSnapshotRead = { [weak self] snapshot in
+        monitor.onSnapshotRead = { [weak self] snapshot, artworkData in
             guard let self else { return }
             self.snapshot = snapshot
             self.lastRefreshDate = Date()
             self.lastErrorMessage = nil
-            let didCommit = self.historyStore.record(snapshot: snapshot, artworkURL: self.artworkURL)
+            let didCommit = self.historyStore.record(snapshot: snapshot, artworkData: artworkData)
             if didCommit || snapshot.isPlaying {
                 self.historyRevision += 1
             }
@@ -377,6 +377,9 @@ final class NowPlayingAppModel: ObservableObject {
             self?.lastErrorMessage = detail
         }
         monitor.start()
+        historyStore.backfillMissingArtwork { [weak self] in
+            self?.historyRevision += 1
+        }
     }
 
     var hasListeningHistory: Bool {
